@@ -1,0 +1,25 @@
+From d3d2787f343026af7f9b5f642467abfc2b6199d2 Mon Sep 17 00:00:00 2001
+From: Erwan SZYMANSKI <erwan.szymanski@st.com>
+Date: Wed, 7 Aug 2024 09:40:41 +0200
+Subject: [PATCH] Remove user ingroup redfish
+
+---
+ config/pam-webserver | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/config/pam-webserver b/config/pam-webserver
+index a5e7af4c..473b922f 100644
+--- a/config/pam-webserver
++++ b/config/pam-webserver
+@@ -1,8 +1,5 @@
+ #%PAM-1.0
+ 
+ auth     include  common-auth
+-# skip redfish group check for non-local user (ldap)
+-auth     [success=ok perm_denied=1 default=ignore] pam_localuser.so
+-auth     required pam_succeed_if.so user ingroup redfish
+ account  include  common-account
+ password include  common-password
+-- 
+2.34.1
+

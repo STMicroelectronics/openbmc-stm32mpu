@@ -1,0 +1,14 @@
+[Unit]
+Description=Mount partitions
+DefaultDependencies=false
+Before=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=Yes
+TimeoutSec=0
+ExecStart=-/sbin/mount-partitions.sh start
+ExecStop=/sbin/mount-partitions.sh stop
+
+[Install]
+WantedBy=local-fs.target

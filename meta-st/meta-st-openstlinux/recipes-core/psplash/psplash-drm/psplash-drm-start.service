@@ -1,0 +1,16 @@
+[Unit]
+Description=Starts Psplash Boot screen
+Wants=dev-dri-card0.device
+After=dev-dri-card0.device
+After=systemd-udevd.service
+DefaultDependencies=no
+
+[Service]
+Type=simple
+RemainAfterExit=yes
+KillMode=mixed
+SendSIGKILL=no
+ExecStart=/usr/bin/psplash-drm-start.sh
+
+[Install]
+WantedBy=local-fs.target

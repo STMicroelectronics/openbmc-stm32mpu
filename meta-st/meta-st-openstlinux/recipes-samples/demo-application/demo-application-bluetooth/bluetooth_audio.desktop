@@ -1,0 +1,11 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Bluetooth Audio Output Demo
+Comment=Bluetooth Audio Output Demo
+# TryExec=/usr/local/demo/application/bluetooth/bin/check_ble.sh
+Exec=/usr/local/demo/application/bluetooth/bin/launch_bluetooth.sh
+Terminal=false
+Icon=bluetooth_audio.png
+Type=Application
+Categories=Application;Bluetooth;Audio;
+# vi: encoding=utf-8

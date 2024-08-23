@@ -1,0 +1,8 @@
+[Match]
+Name=!eth0 !end0
+
+[Network]
+DHCP=ipv4
+
+[DHCP]
+CriticalConnection=true

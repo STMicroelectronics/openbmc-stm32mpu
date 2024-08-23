@@ -1,0 +1,99 @@
+From 9335f35a5f10d345b48deee4f46173d654faf1d1 Mon Sep 17 00:00:00 2001
+From: Florian LEPELTIER <florian.lepeltier@st.com>
+Date: Thu, 13 Oct 2022 14:54:48 +0200
+Subject: [PATCH] Use V4L2 configurable camera device
+
+Change-Id: If748b13da5edae7fcc9bf4337668bd2c01c01a05
+---
+ bubble-pop/source/AMD_app.cpp               | 13 +++++++++----
+ canny-edge-detector/src/canny.cpp           |  9 +++++++--
+ skin-tone-detector/src/skinToneDetector.cpp |  9 +++++++--
+ 3 files changed, 23 insertions(+), 8 deletions(-)
+
+diff --git a/bubble-pop/source/AMD_app.cpp b/bubble-pop/source/AMD_app.cpp
+index 1940023..f076686 100644
+--- a/bubble-pop/source/AMD_app.cpp
++++ b/bubble-pop/source/AMD_app.cpp
+@@ -38,8 +38,8 @@ int main(int argc, char **argv)
+ {
+     if (argc < 2) {
+         printf("Usage:\n"
+-                "./vxPop --donut\n"
+-                "./vxPop --bubble \n");
++                "./vxPop --donut [cameraId]\n"
++                "./vxPop --bubble [cameraId]\n");
+         return 0;
+     }
+ 
+@@ -210,10 +210,15 @@ int main(int argc, char **argv)
+ 
+     // verify graph - only once
+     ERROR_CHECK_STATUS( vxVerifyGraph( graph ) );
+-    
++
++    int camera_id = 0;
++    if (argc > 2) {
++        camera_id = stoi(argv[2]);
++    }
++
+     Mat input, input_rgb;
+     cv::namedWindow("VX POP - LIVE", cv::WINDOW_GUI_EXPANDED);
+-    VideoCapture cap(0);
++    VideoCapture cap(camera_id, CAP_V4L2);
+     if (!cap.isOpened()) {
+         printf("Unable to open camera\n");
+         return 0;
+diff --git a/canny-edge-detector/src/canny.cpp b/canny-edge-detector/src/canny.cpp
+index 4d69702..aae4acb 100644
+--- a/canny-edge-detector/src/canny.cpp
++++ b/canny-edge-detector/src/canny.cpp
+@@ -38,7 +38,7 @@ int main(int argc, char **argv)
+     if (argc < 2) {
+         printf("Usage:\n"
+                 "./cannyDetect --image <imageName>\n"
+-                "./cannyDetect --live \n");
++                "./cannyDetect --live [cameraId]\n");
+         return 0;
+     }
+ 
+@@ -124,7 +124,12 @@ int main(int argc, char **argv)
+     }
+     else if (option == "--live")
+     {
+-        VideoCapture cap(0);
++        int camera_id = 0;
++        if (argc > 2) {
++            camera_id = stoi(argv[2]);
++        }
++
++        VideoCapture cap(camera_id, CAP_V4L2);
+         if (!cap.isOpened()) {
+             printf("Unable to open camera\n");
+             return 0;
+diff --git a/skin-tone-detector/src/skinToneDetector.cpp b/skin-tone-detector/src/skinToneDetector.cpp
+index 2d7987f..38659e7 100644
+--- a/skin-tone-detector/src/skinToneDetector.cpp
++++ b/skin-tone-detector/src/skinToneDetector.cpp
+@@ -38,7 +38,7 @@ int main(int argc, char **argv)
+     if (argc < 2) {
+         printf("Usage:\n"
+                 "./skinToneDetect --image <imageName>\n"
+-                "./skinToneDetect --live \n");
++                "./skinToneDetect --live [cameraId]\n");
+         return 0;
+     }
+     // set image height & width
+@@ -182,7 +182,12 @@ int main(int argc, char **argv)
+     }
+     else if (option == "--live")
+     {
+-        VideoCapture cap(0);
++        int camera_id = 0;
++        if (argc > 2) {
++            camera_id = stoi(argv[2]);
++        }
++
++        VideoCapture cap(camera_id, CAP_V4L2);
+         if (!cap.isOpened()) {
+             printf("Unable to open camera\n");
+             return -1;

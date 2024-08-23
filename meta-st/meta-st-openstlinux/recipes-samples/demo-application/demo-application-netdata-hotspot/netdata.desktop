@@ -1,0 +1,10 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=NetData
+Comment=Perf Monitor
+Exec=/usr/local/demo/application/netdata/bin/launch_netdata.sh
+Terminal=false
+Icon=netdata.png
+Type=Application
+Categories=Application;Perf;Monitor;
+# vi: encoding=utf-8

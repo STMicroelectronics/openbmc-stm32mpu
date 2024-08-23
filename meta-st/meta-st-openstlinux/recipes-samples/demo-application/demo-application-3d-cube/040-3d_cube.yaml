@@ -1,0 +1,17 @@
+Application:
+    Name: 3D Pict
+    Description: GPU
+    Icon: application/3d-cube/pictures/ST153_cube_purple.png
+    Board:
+        List: stm32mp157 stm32mp257
+    Type: script
+    Script:
+        Exist:
+            File: /dev/galcore
+            Msg_false: No GCNANO GPU STACK capabilities to run 3D GPU demo
+        Start: application/3d-cube/bin/launch_cube_3D.sh
+    Action:
+        button_release_event: script_management
+        button_press_event: highlight_eventBox
+
+

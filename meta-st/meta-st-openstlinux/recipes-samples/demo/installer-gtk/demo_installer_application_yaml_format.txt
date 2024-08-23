@@ -1,0 +1,107 @@
+Summary:
+=======
+1. Purpose
+2. Yaml description for each application to install or desinstall
+3. File tree
+4. Example of application description to install
+5. Example of application description to desinstall
+
+1. Purpose:
+-----------
+Propose a generic way to describe an application installer/desintaller and
+easily add it or remove it on the demo_installer.
+To permit a better and dynamic management of applications, each application is
+described on a yaml file.
+
+2. Yaml description for each application installer/desintaller:
+---------------------------------------------------------------
+Please refer to the yaml description in the demo-gtk directory.
+
+
+3. File Tree:
+------------
+install/
+├── 999-close-installer.yaml
+├── close-installer
+│   ├── bin
+│   │   └── close-installer.sh
+│   └── pictures
+│       └── ST20578_Label_OpenSTlinux_V.png
+└── __init__.py
+
+uninstall/
+├── 999-close-desinstaller.yaml
+├── close-desinstaller
+│   ├── bin
+│   │   └── close-desinstaller.sh
+│   └── pictures
+│       └── ST20578_Label_OpenSTlinux_V.png
+└── __init__.py
+
+4. Example of application installer:
+------------------------------------
+Example 1:
+Application:
+    Name: X-Linux-AI
+    Description: Packages Install
+    Icon: common/x-linux-ai/pictures/X-Linux-AI.png
+    Type: script
+    Board:
+        List: all
+    Script:
+        Start: install/x-linux-ai/bin/install_x_linux_ai.sh
+    Action:
+        button_release_event: script_management
+	button_press_event: highlight_eventBox
+    Installer:
+        Type: demo
+
+Example 2:
+Application:
+    Name: 3D Cube
+    Description: Packages Install
+    Icon: common/3d_cube/pictures/ST153_cube_purple.png
+    Type: script
+    Board:
+        List: all
+    Script:
+        Start: install/3d_cube/bin/install_3d_cube.sh
+    Action:
+        button_release_event: script_management
+        button_press_event: highlight_eventBox
+    Installer:
+        Type: demo
+
+5. Example of application uninstaller:
+--------------------------------------
+Example 1:
+Application:
+    Name: X-Linux-AI
+    Description: Packages Unnstall
+    Icon: common/x-linux-ai/pictures/X-Linux-AI.png
+    Type: script
+    Board:
+        List: all
+    Script:
+        Start: uninstall/x-linux-ai/bin/uninstall_x_linux_ai.sh
+    Action:
+        button_release_event: script_management
+	button_press_event: highlight_eventBox
+    Installer:
+        Type: demo
+
+Example 2:
+Application:
+    Name: 3D Cube
+    Description: Packages uninstall
+    Icon: common/3d_cube/pictures/ST153_cube_purple.png
+    Type: script
+    Board:
+        List: all
+    Script:
+        Start: uninstall/3d_cube/bin/desinstall_3d_cube.sh
+    Action:
+        button_release_event: script_management
+        button_press_event: highlight_eventBox
+    Installer:
+        Type: demo

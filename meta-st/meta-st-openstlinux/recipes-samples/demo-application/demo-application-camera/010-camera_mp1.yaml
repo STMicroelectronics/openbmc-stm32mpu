@@ -1,0 +1,17 @@
+Application:
+    Name: Camera
+    Description: preview
+    Icon: application/camera/pictures/ST1077_webcam_dark_blue.png
+    Board:
+        List: stm32mp1
+    Type: script
+    Script:
+        Exist:
+            Command: /usr/local/demo/application/camera/bin/check_camera_preview_mp1.sh
+            Msg_false: Webcam or camera is not connected
+        Start: application/camera/bin/launch_camera_preview_mp1.sh
+    Action:
+        button_release_event: script_management
+        button_press_event: highlight_eventBox
+
+

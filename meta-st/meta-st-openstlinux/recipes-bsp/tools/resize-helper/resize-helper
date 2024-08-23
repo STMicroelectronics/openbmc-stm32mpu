@@ -1,0 +1,80 @@
+#!/bin/sh
+# Copyright (c) Fathi Boudra <fathi.boudra@linaro.org>
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+
+# we must be root
+[ $(whoami) = "root" ] || { echo "E: You must be root" && exit 1; }
+
+# we must have few tools
+RESIZE2FS=$(which resize2fs) || { echo "E: You must have resize2fs" && exit 1; }
+
+# find root device
+# ROOT_DEVICE=$(findmnt --noheadings --output=SOURCE / | cut -d'[' -f1)
+DEVICES=$(ls /sys/fs/ext4/)
+
+echo "RESIZE-HELPER START" > /dev/kmsg
+
+# disable service to be sure it will be executed only one time
+if [ -f /bin/systemctl ]; then
+    /bin/systemctl --no-reload disable resize-helper.service
+else
+    rm /etc/rc[35].d/S22resize-helper.sh &> /dev/null
+fi
+sync
+
+if `grep -q nfsroot /proc/cmdline` ; then
+    exit 0;
+fi
+
+if [ -f /lib/systemd/systemd-growfs ]; then
+    echo "RESIZE-HELPER: Using systemd-growfs" > /dev/kmsg
+    # force to mount partitions
+    if [ -z $(findmnt --noheadings --output=SOURCE /boot|cut  -d'[' -f1) ];
+    then
+        [ -f /sbin/mount-partitions.sh ] && /sbin/mount-partitions.sh stop
+    fi
+    /lib/systemd/systemd-growfs /
+    /lib/systemd/systemd-growfs /boot
+    /lib/systemd/systemd-growfs /vendor
+    /lib/systemd/systemd-growfs /usr/local/
+else
+    echo "RESIZE-HELPER: Using directly resize2fs" > /dev/kmsg
+    # umount partition before to resize it
+    [ -f /sbin/mount-partitions.sh ] && /sbin/mount-partitions.sh stop
+    for device in ${DEVICES}; do
+        PART_TABLE_TYPE=$(udevadm info --query=property --name=/dev/${device} | grep '^ID_PART_TABLE_TYPE=' | cut -d'=' -f2)
+        if [ -e /dev/${device} ]; then
+            if [ "$PART_TABLE_TYPE" = "gpt" ]; then
+                echo "Resize /dev/${device}"
+                ${RESIZE2FS} "/dev/${device}"
+            fi
+        fi
+    done
+fi
+
+df -h > /dev/kmsg
+
+#echo "RESIZE-HELPER: For integrity of file-system after a resize2fs, the system need to be rebooted" > /dev/kmsg
+#echo "RESIZE-HELPER REBOOTING of system" > /dev/kmsg
+echo "RESIZE-HELPER FINISH" > /dev/kmsg

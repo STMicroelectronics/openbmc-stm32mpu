@@ -1,0 +1,12 @@
+[Unit]
+Description=Seat for Weston user
+
+Before=graphical-session.target display-manager.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/seatd -u weston -g video
+ExecStop=killall /usr/bin/seatd
+
+[Install]
+WantedBy=multi-user.target

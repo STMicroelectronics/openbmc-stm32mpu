@@ -1,0 +1,322 @@
+List of Packages:
+  adwaita-icon-theme               43                       LGPL-3.0-only | CC-BY-SA-3.0
+  ai-hand-char-reco-launcher       2.1                      GPL-2.0-only & BSD-3-Clause
+  alsa-lib                         1.2.8                    LGPL-2.1-only & GPL-2.0-or-later
+  alsa-plugins                     1.2.7.1                  LGPL-2.1-only & GPL-2.0-or-later
+  alsa-state                       0.2.0                    MIT & GPL-2.0-or-later
+  alsa-state-script                1.0                      MIT
+  alsa-state-stm32mp1              1.0                      MIT
+  alsa-state-stm32mp2              1.0                      MIT
+  alsa-topology-conf               1.2.5.1                  BSD-3-Clause
+  alsa-ucm-conf                    1.2.8                    BSD-3-Clause
+  alsa-utils                       1.2.8                    GPL-2.0-only
+  apt                              2.4.5                    GPL-2.0-or-later
+  apt-openstlinux                  5.1                      MIT
+  at-spi2-core                     2.46.0                   LGPL-2.1-or-later
+  attr                             2.5.1                    LGPL-2.1-or-later
+  avahi                            0.8                      LGPL-2.1-or-later
+  babeltrace                       1.5.11                   MIT & GPL-2.0-only & LGPL-2.1-only
+  babeltrace2                      2.0.5                    MIT & GPL-2.0-only & LGPL-2.1-only & BSD-2-Clause
+  base-files                       3.0.14                   GPL-2.0-only
+  base-passwd                      3.6.1                    GPL-2.0-only
+  bash                             5.2.15                   GPL-3.0-or-later
+  bc                               1.07.1                   GPL-3.0-or-later
+  blktool                          4-7.1                    GPL-2.0-or-later
+  blktrace                         1.3.0+gitAUTOINC+366d30b9cd GPL-2.0-only
+  bluetooth-suspend                1.0                      MIT
+  bluez5                           5.66                     GPL-2.0-or-later & LGPL-2.1-or-later
+  boost                            1.81.0                   BSL-1.0 & MIT & Python-2.0
+  bridge-utils                     1.7.1                    GPL-2.0-only
+  build-info-openstlinux           1.0                      MIT
+  busybox                          1.36.1                   GPL-2.0-only & bzip2-1.0.4
+  bzip2                            1.0.8                    bzip2-1.0.6
+  ca-certificates                  20211016                 GPL-2.0-or-later & MPL-2.0
+  cairo                            1.16.0                   MPL-1.1 | LGPL-2.1-only
+  can-utils                        2023.03                  GPL-2.0-only & BSD-3-Clause
+  ckermit                          302                      BSD-3-Clause
+  coreutils                        9.1                      GPL-3.0-or-later
+  cpufrequtils                     008                      GPL-2.0-only
+  cracklib                         2.9.11                   LGPL-2.1-or-later
+  cryptodev-module                 1.12                     GPL-2.0-only
+  curl                             8.0.1                    curl
+  db                               5.3.28                   Sleepycat
+  dbus                             1.14.10                  AFL-2.1 | GPL-2.0-or-later
+  dcmipp-isp-ctrl                  5.1                      BSD-3-Clause
+  demo-application-3d-cube         3.0                      BSD-3-Clause
+  demo-application-bluetooth       2.1                      BSD-3-Clause
+  demo-application-camera          2.0                      BSD-3-Clause
+  demo-application-netdata-hotspot 2.0                      BSD-3-Clause
+  demo-application-video           2.0                      BSD-3-Clause
+  demo-gtk                         2.2                      BSD-3-Clause
+  demo-hotspot-wifi                1.0                      MIT
+  demo-launcher                    2.3                      BSD-3-Clause
+  desktop-file-utils               0.26                     GPL-2.0-or-later
+  dosfstools                       4.2                      GPL-3.0-only
+  dpkg                             1.21.22                  GPL-2.0-or-later
+  dropbear                         2022.83                  MIT & BSD-3-Clause & BSD-2-Clause & PD
+  duktape                          2.7.0                    MIT
+  e2fsprogs                        1.47.0                   GPL-2.0-only
+  e2fsprogs                        1.47.0                   GPL-2.0-only & LGPL-2.0-only & BSD-3-Clause & MIT
+  elfutils                         0.188                    GPL-2.0-only | LGPL-3.0-or-later
+  elfutils                         0.188                    GPL-3.0-or-later
+  ethtool                          6.2                      GPL-2.0-or-later
+  event-gtk-player                 5.0+gitAUTOINC+b048c2ea12 GPL-2.0-or-later
+  evtest                           1.35                     GPL-2.0-only
+  expat                            2.5.0                    MIT
+  faac                             1.29.9.2                 LGPL-2.0-or-later
+  fb-test                          1.1.0                    GPL-2.0-only
+  fdk-aac                          2.0.1                    Fraunhofer_FDK_AAC_Codec_Library_for_Android
+  ffmpeg                           5.1.3                    LGPL-2.1-or-later
+  fftw                             3.3.10                   GPL-2.0-only
+  file                             5.45                     BSD-2-Clause
+  flac                             1.4.2                    GFDL-1.2 & GPL-2.0-or-later & LGPL-2.1-or-later & BSD-3-Clause
+  fontconfig                       2.14.2                   MIT & MIT & PD
+  freetype                         2.13.1                   (FTL | GPL-2.0-or-later) & MIT
+  fribidi                          1.0.13                   LGPL-2.1-or-later
+  gcc-runtime                      12.3.0                   GPL-3.0-with-GCC-exception
+  gcnano-driver-stm32mp            6.4.15-stm32mp2-r1       GPL-1.0-only & MIT
+  gdb                              13.2                     GPL-2.0-only & GPL-3.0-only & LGPL-2.0-only & LGPL-3.0-only
+  gdk-pixbuf                       2.42.10                  LGPL-2.1-or-later
+  glib-2.0                         2.74.6                   LGPL-2.1-or-later & BSD-3-Clause & PD
+  glibc                            2.37                     GPL-2.0-only & LGPL-2.1-only
+  glibc-locale                     2.37                     GPL-2.0-only & LGPL-2.1-only
+  glib-networking                  2.74.0                   LGPL-2.1-only
+  glmark2                          2023.01                  GPL-3.0-or-later & SGI-1
+  gmp                              6.2.1                    GPL-2.0-or-later | LGPL-3.0-or-later
+  gnupg                            2.4.3                    GPL-3.0-only & LGPL-3.0-only
+  gnutls                           3.8.0                    LGPL-2.1-or-later
+  gobject-introspection            1.74.0                   LGPL-2.0-or-later & GPL-2.0-or-later & MIT
+  gpio-udev                        1.0                      GPL-2.0-only
+  gptfdisk                         1.0.9                    GPL-2.0-only
+  grep                             3.10                     GPL-3.0-only
+  gstreamer1.0                     1.22.6                   LGPL-2.1-or-later
+  gstreamer1.0-libav               1.22.6                   LGPL-2.1-or-later
+  gstreamer1.0-plugins-bad         1.22.6                   LGPL-2.1-or-later
+  gstreamer1.0-plugins-base        1.22.6                   LGPL-2.1-or-later
+  gstreamer1.0-plugins-good        1.22.6                   LGPL-2.1-or-later
+  gstreamer1.0-plugins-ugly        1.22.6                   GPL-2.0-or-later
+  gstreamer1.0-plugins-ugly        1.22.6                   LGPL-2.1-or-later
+  gstreamer1.0-rtsp-server         1.22.6                   LGPL-2.1-or-later
+  gtk+3                            3.24.36                  LGPL-2.0-only & LGPL-2.0-or-later & LGPL-2.1-or-later
+  harfbuzz                         7.1.0                    MIT
+  hdparm                           9.65                     BSD-2-Clause & hdparm
+  hicolor-icon-theme               0.17                     GPL-2.0-only
+  hostapd                          2.10                     BSD-3-Clause
+  i2c-tools                        4.3                      GPL-2.0-or-later
+  icu                              72-1                     ICU
+  infos-openstlinux                1.1                      GPL-2.0-or-later
+  initramfs-framework              1.0                      MIT
+  initrd-boot                      1.0                      MIT
+  installer-apps                   1.0                      BSD-3-Clause
+  installer-gtk                    1.0                      BSD-3-Clause
+  iproute2                         6.2.0                    GPL-2.0-or-later
+  iptables                         1.8.9                    GPL-2.0-or-later
+  iputils                          20221126                 BSD-3-Clause & GPL-2.0-or-later
+  iw                               5.19                     BSD-2-Clause
+  jack                             1.19.22                  GPL-2.0-only & LGPL-2.1-only
+  json-c                           0.16                     MIT
+  json-glib                        1.6.6                    LGPL-2.1-only
+  kbd                              2.5.1                    GPL-2.0-or-later
+  kmod                             30                       GPL-2.0-or-later & LGPL-2.1-or-later
+  kmod                             30                       LGPL-2.1-or-later
+  kmscube                          git                      MIT
+  lame                             3.100                    LGPL-2.0-or-later
+  liba52                           0.7.4                    GPL-2.0-or-later
+  libaio                           0.3.113                  LGPL-2.1-or-later
+  libassuan                        2.5.6                    LGPL-2.1-or-later
+  libcamera                        0.2.0                    GPL-2.0-or-later & LGPL-2.1-or-later
+  libcap                           2.67                     BSD-3-Clause | GPL-2.0-only
+  libcap-ng                        0.8.3                    GPL-2.0-or-later & LGPL-2.1-or-later
+  libdaemon                        0.14                     LGPL-2.1-or-later
+  libdazzle                        3.44.0                   GPL-3.0-or-later
+  libdrm                           2.4.115                  MIT
+  libepoxy                         1.5.10                   MIT
+  liberation-fonts                 2.1.5                    OFL-1.1
+  libevdev                         1.13.0                   MIT
+  libevent                         2.1.12                   BSD-3-Clause & MIT
+  libffi                           3.4.4                    MIT
+  libgcc                           12.3.0                   GPL-3.0-with-GCC-exception
+  libgcrypt                        1.10.2                   LGPL-2.1-or-later
+  libgpg-error                     1.46                     GPL-2.0-or-later & LGPL-2.1-or-later
+  libgpiod                         2.0                      GPL-2.0-or-later & LGPL-2.1-or-later & CC-BY-SA-4.0
+  libgudev                         237                      LGPL-2.1-only
+  libidn2                          2.3.4                    (GPL-2.0-or-later | LGPL-3.0-only) & Unicode-DFS-2016
+  libiio                           0.23                     LGPL-2.1-or-later
+  libinput                         1.22.1                   MIT
+  libjpeg-turbo                    2.1.5.1                  BSD-3-Clause
+  libksba                          1.6.4                    GPL-2.0-or-later | LGPL-3.0-or-later
+  libmd                            1.0.4                    BSD-3-Clause & BSD-2-Clause
+  libmnl                           1.0.5                    LGPL-2.1-or-later
+  libnl                            3.7.0                    LGPL-2.1-only
+  libnss-mdns                      0.15.1                   LGPL-2.1-or-later
+  libogg                           1.3.5                    BSD-3-Clause
+  libopencsd                       1.4.0                    BSD-3-Clause
+  libopus                          1.3.1                    BSD-3-Clause
+  libpam                           1.5.2                    GPL-2.0-or-later | BSD-3-Clause
+  libpcap                          1.10.4                   BSD-3-Clause
+  libpcre2                         10.42                    BSD-3-Clause
+  libpcre                          8.45                     BSD-3-Clause
+  libpng                           1.6.39                   Libpng
+  libpsl                           0.21.2                   MIT
+  librsvg                          2.54.6                   LGPL-2.1-or-later
+  libsamplerate0                   0.2.2                    BSD-2-Clause
+  libsdl2                          2.26.5                   Zlib & BSD-2-Clause
+  libserialport                    0.1.1                    LGPL-3.0-or-later
+  libsndfile1                      1.2.2                    LGPL-2.1-only
+  libsoup                          3.2.2                    LGPL-2.0-only
+  libtheora                        1.1.1                    BSD-3-Clause
+  libtirpc                         1.3.3                    BSD-3-Clause
+  libunistring                     1.1                      LGPL-3.0-or-later | GPL-2.0-or-later
+  libunwind                        1.6.2                    MIT
+  libusb1                          1.0.26                   LGPL-2.1-or-later
+  libuv                            1.44.2                   MIT
+  libvorbis                        1.3.7                    BSD-3-Clause
+  libwebp                          1.3.1                    BSD-3-Clause
+  libx11-compose-data              1.8.4                    MIT & BSD-1-Clause & HPND & HPND-sell-variant & ISC
+  libxcrypt                        4.4.33                   LGPL-2.1-only
+  libxkbcommon                     1.5.0                    MIT & MIT
+  libxml2                          2.10.4                   MIT
+  libyaml                          0.2.5                    MIT
+  linux-examples-stm32mp1          5.4+AUTOINC+377d3eb9f1   MIT
+  linux-firmware                   20230804                 Firmware-Abilis & Firmware-adsp_sst & Firmware-agere & Firmware-amdgpu & Firmware-amd-ucode & Firmware-amlogic_vdec & Firmware-atheros_firmware & Firmware-atmel & Firmware-broadcom_bcm43xx & Firmware-ca0132 & Firmware-cavium & Firmware-chelsio_firmware & Firmware-cw1200 & Firmware-cypress & Firmware-dib0700 & Firmware-e100 & Firmware-ene_firmware & Firmware-fw_sst_0f28 & Firmware-go7007 & Firmware-GPLv2 & Firmware-hfi1_firmware & Firmware-i915 & Firmware-ibt_firmware & Firmware-ice & Firmware-it913x & Firmware-iwlwifi_firmware & Firmware-IntcSST2 & Firmware-kaweth & Firmware-linaro & Firmware-Lontium & Firmware-Marvell & Firmware-moxa & Firmware-myri10ge_firmware & Firmware-netronome & Firmware-nvidia & Firmware-nxp & Firmware-OLPC & Firmware-ath9k-htc & Firmware-phanfw & Firmware-qat & Firmware-qcom & Firmware-qcom-yamato & Firmware-qla1280 & Firmware-qla2xxx & Firmware-qualcommAthos_ar3k & Firmware-qualcommAthos_ath10k & Firmware-r8a779x_usb3 & Firmware-radeon & Firmware-ralink_a_mediatek_company_firmware & Firmware-ralink-firmware & Firmware-rtlwifi_firmware & Firmware-imx-sdma_firmware & Firmware-siano & Firmware-ti-connectivity & Firmware-ti-keystone & Firmware-ueagle-atm4-firmware & Firmware-via_vt6656 & Firmware-wl1251 & Firmware-xc4000 & Firmware-xc5000 & Firmware-xc5000c & WHENCE
+  linux-firmware                   20230804                 WHENCE
+  linux-firmware-bluetooth-bcm4343 3.1                      Firmware-cypress-bcm4343
+  lmsensors                        3.6.0                    GPL-2.0-or-later & LGPL-2.1-or-later
+  lmsensors-config                 1.0                      MIT
+  lrzsz                            0.12.20                  GPL-2.0-or-later
+  lz4                              1.9.4                    BSD-2-Clause | GPL-2.0-only
+  lzo                              2.10                     GPL-2.0-or-later
+  m33projects-stm32mp2             1.0.0                    Apache-2.0 & MIT & BSD-3-Clause
+  m4fwcoredump                     1.0                      MIT
+  m4projects-stm32mp1              1.6.0                    Apache-2.0 & MIT & BSD-3-Clause
+  memtester                        4.6.0                    GPL-2.0-only
+  minicom                          2.8                      GPL-2.0-or-later
+  mmc-utils                        0.1+gitAUTOINC+d4c2910981 GPL-2.0-only
+  mpeg2dec                         0.5.1                    GPL-2.0-or-later
+  mpg123                           1.31.3                   LGPL-2.1-only
+  mtdev                            1.1.6                    MIT
+  mtd-utils                        2.1.5                    GPL-2.0-or-later
+  ncurses                          6.4                      MIT
+  ne10                             1.2.1gitr+AUTOINC+18c4c982a5 BSD-3-Clause
+  netbase                          6.4                      GPL-2.0-only
+  netdata                          1.36.1                   GPL-3.0-only
+  nettle                           3.8.1                    LGPL-3.0-or-later | GPL-2.0-or-later
+  nghttp2                          1.52.0                   MIT
+  npth                             1.6                      LGPL-2.0-or-later
+  ntp                              4.2.8p15                 NTP
+  numactl                          2.0.16                   GPL-2.0-only & LGPL-2.1-only
+  openssh                          9.3p2                    BSD-2-Clause & BSD-3-Clause & ISC & MIT
+  openssl                          3.1.4                    Apache-2.0
+  opkg-utils                       0.6.2                    GPL-2.0-or-later
+  optee-client                     3.19.0+gitAUTOINC+140bf46304 BSD-2-Clause
+  optee-stm32mp-addons             3.16.0.AUTOINC+8ab68826c0 BSD-3-Clause
+  optee-test                       3.19.0+gitAUTOINC+ab9863cc18 BSD-2-Clause & GPL-2.0-only
+  orc                              0.4.33                   BSD-2-Clause & BSD-3-Clause
+  os-release                       1.0                      MIT
+  packagegroup-base                1.0                      MIT
+  packagegroup-core-boot           1.0                      MIT
+  packagegroup-core-eclipse-debug  1.0                      MIT
+  packagegroup-core-full-cmdline   1.0                      MIT
+  packagegroup-core-ssh-dropbear   1.0                      MIT
+  packagegroup-core-tools-profile  1.0                      MIT
+  packagegroup-framework-core      1.0                      MIT
+  packagegroup-framework-core-base 1.0                      MIT
+  packagegroup-framework-core-extra 1.0                      MIT
+  packagegroup-framework-tools     1.0                      MIT
+  packagegroup-framework-tools-base 1.0                      MIT
+  packagegroup-gstreamer1-0        1.0                      LGPL-2.0-or-later
+  packagegroup-optee-core          1.0                      LGPL-2.0-or-later
+  packagegroup-optee-test          1.0                      LGPL-2.0-or-later
+  packagegroup-st-demo             1.0                      MIT
+  pango                            1.50.14                  LGPL-2.0-or-later
+  pciutils                         3.9.0                    GPL-2.0-or-later
+  perf                             1.0                      GPL-2.0-only
+  perl                             5.36.0                   Artistic-1.0 | GPL-1.0-or-later
+  pinentry                         1.2.1                    GPL-2.0-only
+  pipewire                         1.0.0                    MIT & LGPL-2.1-or-later & GPL-2.0-only
+  pixman                           0.42.2                   MIT & PD
+  polkit                           122                      LGPL-2.0-or-later
+  popt                             1.19                     MIT
+  powertop                         2.15                     GPL-2.0-only
+  procps                           4.0.3                    GPL-2.0-or-later & LGPL-2.0-or-later
+  psplash-drm                      1.0                      MIT
+  pulseaudio                       16.1                     LGPL-2.1-or-later & MIT & BSD-3-Clause
+  python3                          3.11.5                   PSF-2.0
+  python3-dateutil                 2.8.2                    BSD-3-Clause & Apache-2.0
+  python3-evdev                    1.6.1                    BSD-3-Clause
+  python3-pexpect                  4.8.0                    ISC
+  python3-ptyprocess               0.7.0                    ISC
+  python3-pycairo                  1.23.0                   LGPL-2.1-only & MPL-1.1
+  python3-pygobject                3.42.2                   LGPL-2.1-only
+  python3-pyparsing                3.0.9                    MIT
+  python3-pyyaml                   6.0                      MIT
+  python3-six                      1.16.0                   MIT
+  qrenc                            1.0                      LGPL-2.1-only
+  qrencode                         4.1.1                    LGPL-2.1-only
+  readline                         8.2                      GPL-3.0-or-later
+  resize-helper                    1.0                      GPL-2.0-or-later
+  rng-tools                        6.16                     GPL-2.0-only
+  rpcbind                          1.2.6                    BSD-3-Clause
+  rt-tests                         2.5                      GPL-2.0-only & GPL-2.0-or-later
+  run-postinsts                    1.0                      MIT
+  sbc                              2.0                      LGPL-2.1-or-later
+  seatd                            0.7.0                    MIT
+  shadow                           4.13                     BSD-3-Clause
+  shadow-securetty                 4.6                      MIT
+  shared-mime-info                 2.2                      GPL-2.0-only
+  slang                            2.3.3                    GPL-2.0-only
+  speex                            1.2.1                    BSD-3-Clause
+  speexdsp                         1.2.1                    BSD-3-Clause
+  sqlite3                          3.41.0                   PD
+  stm32-ddr-tools                  1.0                      MIT
+  stm32mp-g0                       v1.0.0                   Apache-2.0 & MIT & BSD-3-Clause & Proprietary
+  strace                           6.2                      LGPL-2.1-or-later & GPL-2.0-or-later
+  sudo                             1.9.15p2                 ISC & BSD-3-Clause & BSD-2-Clause & Zlib
+  sysfsutils                       2.1.0                    GPL-2.0-only
+  sysfsutils                       2.1.0                    LGPL-2.1-only
+  sysprof                          3.44.0                   GPL-3.0-or-later
+  sysstat                          12.6.2                   GPL-2.0-or-later
+  systemd                          253.1                    GPL-2.0-only & LGPL-2.1-only
+  systemd-compat-units             1.0                      MIT
+  systemd-conf                     1.0                      MIT
+  systemd-mount-partitions         1.0                      MIT
+  systemd-networkd-configuration   1.0                      MIT
+  systemd-serialgetty              1.0                      GPL-2.0-or-later
+  systemtap                        4.8                      GPL-2.0-only
+  taglib                           1.13.1                   LGPL-2.1-only | MPL-1.1
+  tar                              1.35                     GPL-3.0-only
+  tcf-agent                        1.8.0+gitAUTOINC+1f11747e83 EPL-1.0 | EDL-1.0
+  tcpdump                          4.99.4                   BSD-3-Clause
+  tcp-wrappers                     7.6                      BSD-1-Clause
+  tiff                             4.5.1                    BSD-2-Clause
+  tzdata                           2023c                    PD & BSD-3-Clause
+  u-boot-fw-config-stm32mp         2021.10                  MIT
+  uhubctl                          2.5.0                    GPL-2.0-only
+  update-rc.d                      0.8                      GPL-2.0-or-later
+  usbip                            2.0                      GPL-2.0-only
+  usbotg-gadget-config             1.0                      MIT
+  usbutils                         015                      GPL-2.0-or-later
+  userfs-cleanup-package           1.0                      BSD-3-Clause
+  util-linux                       2.38.1                   GPL-2.0-or-later & LGPL-2.1-or-later & BSD-3-Clause & BSD-4-Clause
+  util-linux                       2.38.1                   LGPL-2.1-or-later
+  util-linux-libuuid               2.38.1                   BSD-3-Clause
+  v4l-utils                        1.23.0+gitAUTOINC+9431e4b26b GPL-2.0-only & LGPL-2.1-only
+  valgrind                         3.20.0                   GPL-2.0-only & GPL-2.0-or-later & BSD-3-Clause
+  volatile-binds                   1.0                      MIT
+  vulkan-loader                    1.3.239.0                Apache-2.0
+  wayland                          1.21.0                   MIT
+  wayland-utils                    1.1.0                    MIT
+  webrtc-audio-processing          0.3.1                    BSD-3-Clause
+  weston                           11.0.1                   MIT
+  weston-cube                      5.0+gitAUTOINC+7c46618178 MIT
+  weston-init                      1.0                      MIT
+  wget                             1.21.4                   GPL-3.0-only
+  wireless-regdb                   2023.09.01               ISC
+  wireplumber                      0.4.17                   MIT
+  wpa-supplicant                   2.10                     BSD-3-Clause
+  xkeyboard-config                 2.38                     MIT & MIT
+  xxhash                           0.8.1                    BSD-2-Clause & GPL-2.0-only
+  xz                               5.4.4                    GPL-2.0-or-later
+  xz                               5.4.4                    PD
+  zlib                             1.2.13                   Zlib
+  zstd                             1.5.4                    BSD-3-Clause & GPL-2.0-only

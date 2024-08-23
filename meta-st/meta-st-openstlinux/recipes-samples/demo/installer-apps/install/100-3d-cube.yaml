@@ -1,0 +1,14 @@
+Application:
+    Name: 3D Cube Extra
+    Description: Packages Install
+    Icon: gtk-installer/common/3d_cube/pictures/ST153_cube_purple.png
+    Type: script
+    Board:
+        List: all
+    Script:
+        Start: gtk-installer/common/generic/bin/install.sh demo-application-3d-cube-extra
+    Action:
+        button_release_event: script_management
+        button_press_event: highlight_eventBox
+    Installer:
+        Type: demo

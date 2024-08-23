@@ -1,0 +1,11 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Camera Preview Demo
+Comment=Camera Preview Demo
+# TryExec=/usr/local/demo/application/camera/bin/check_camera_preview.sh
+Exec=/usr/local/demo/application/camera/bin/launch_camera.sh
+Terminal=false
+Icon=camera_preview.png
+Type=Application
+Categories=Application;Camera;
+# vi: encoding=utf-8

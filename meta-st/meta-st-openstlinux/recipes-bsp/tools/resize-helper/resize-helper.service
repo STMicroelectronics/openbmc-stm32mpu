@@ -1,0 +1,14 @@
+[Unit]
+Description=Resize root filesystem to fit available disk space
+DefaultDependencies=false
+After=mount-partitions.service
+Before=local-fs.target serial-getty@ttySTM0.service netdata.service
+
+[Service]
+Type=oneshot
+ExecStartPre=-/bin/udevadm settle
+ExecStart=-/sbin/resize-helper
+WatchdogSec=45
+
+[Install]
+WantedBy=local-fs.target

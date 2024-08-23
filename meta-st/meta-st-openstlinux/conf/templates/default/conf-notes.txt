@@ -1,0 +1,9 @@
+Available images for OpenSTLinux layers are:
+
+  - Official OpenSTLinux images:
+      st-image-weston       -   OpenSTLinux weston image with basic Wayland support (if enable in distro)
+
+  - Other OpenSTLinux images:
+      - Supported images:
+          st-image-core         -   OpenSTLinux core image
+

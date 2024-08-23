@@ -1,0 +1,10 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=3D Cube Demo
+Comment=STM32MPU GPU 3D Rendering Demo
+Exec=/usr/local/demo/application/3d-cube/bin/launch_cube_3D.sh
+Terminal=false
+Icon=cube_3d.png
+Type=Application
+Categories=Application;3DGPU;Graphics;
+# vi: encoding=utf-8

@@ -1,0 +1,14 @@
+Application:
+    Name: OSTL Expansion
+    Description: Packages Uninstall
+    Icon: ../demo/pictures/X-Linux-installer.png
+    Type: script
+    Board:
+        List: all
+    Script:
+        Start: ../demo/bin/launch_x_linux_installer.sh
+    Action:
+        button_release_event: script_management
+        button_press_event: highlight_eventBox
+    Installer:
+        Type: uninstaller

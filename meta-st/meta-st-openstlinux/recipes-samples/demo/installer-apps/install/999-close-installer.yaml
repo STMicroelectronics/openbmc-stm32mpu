@@ -1,0 +1,14 @@
+Application:
+    Name: Close the Installer
+    Description: Return to Demos
+    Icon: gtk-installer/common/close/pictures/ST20578_Label_OpenSTlinux_V.png
+    Type: script
+    Board:
+        List: all
+    Script:
+        Start: gtk-installer/common/close/bin/close.sh
+    Action:
+        button_release_event: script_management
+        button_press_event: highlight_eventBox
+    Installer:
+        Type: launcher

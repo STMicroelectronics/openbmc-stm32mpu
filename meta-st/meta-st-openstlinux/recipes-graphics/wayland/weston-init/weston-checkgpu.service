@@ -1,0 +1,12 @@
+[Unit]
+Description=Check if the gpu are present and set the correct weston configuration
+Before=weston-graphical-session.service
+
+[Service]
+ExecStart=-/sbin/check-gpu
+Type=oneshot
+RemainAfterExit=yes
+TimeoutSec=0
+
+[Install]
+WantedBy=multi-user.target

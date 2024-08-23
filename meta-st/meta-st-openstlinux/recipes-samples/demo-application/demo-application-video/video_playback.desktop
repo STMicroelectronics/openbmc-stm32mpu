@@ -1,0 +1,10 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Video Playback Demo
+Comment=Video Playback Demo
+Exec=/usr/local/demo/application/video/bin/launch_video.sh
+Terminal=false
+Icon=video_playback.png
+Type=Application
+Categories=Application;Video;
+# vi: encoding=utf-8
