@@ -8,9 +8,9 @@ The *meta-st* is based on [*OpenSTLinux* distribution](https://wiki.st.com/stm32
 
 |                   | Version                                                       |
 | --------          | -------                                                       |
-| **Yocto**         | Mickledore                                                    |
-| **OpenSTLinux**   | 5.1.0                                                         |
-| **OpenBMC**       | 2.14.0 (SHA1 : *1e488cdf844bf4aa82d3c90875a56fb35c7f210d*)    |
+| **Yocto**         | Scarthgap                                                     |
+| **OpenSTLinux**   | 6.0.0                                                         |
+| **OpenBMC**       | 2.17.0-dev (SHA1 : *634e797b0331cad240ff7c1a360864f333753612*)    |
 
 ## How to set up openBMC for STM32MPU ?
 
@@ -22,7 +22,7 @@ We need to point on the SHA1 mentioned in the table above.
 ```sh
 git clone https://github.com/openbmc/openbmc.git
 cd openbmc
-git checkout 1e488cdf844bf4aa82d3c90875a56fb35c7f210d
+git checkout 634e797b0331cad240ff7c1a360864f333753612
 ```
 
 You can check all the supported platforms by doing the following command :
@@ -43,7 +43,7 @@ We will call :
 ```sh
 mkdir <folder_st>
 cd <folder_st>
-git clone https://github.com/STMicroelectronics/openbmc-stm32mpu.git -b mickledore 
+git clone https://github.com/STMicroelectronics/openbmc-stm32mpu.git -b yocto_scarthgap 
 cp -r ./openbmc-stm32mpu/meta-st <folder_openbmc>/openbmc
 ```
 
@@ -69,7 +69,7 @@ Example :
 ```
 You are now ready to build :
 ```sh
-BB_NO_NETWORK="1" bitbake obmc-phosphor-image
+bitbake obmc-phosphor-image
 ```
 
 This Yocto compilation can takes a lot of time, take a break !
