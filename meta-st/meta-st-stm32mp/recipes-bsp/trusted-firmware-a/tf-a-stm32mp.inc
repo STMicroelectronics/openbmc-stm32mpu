@@ -15,10 +15,10 @@ require tf-a-stm32mp-config.inc
 # ------------------------------------
 # Set MBEDTLS support
 TFA_MBEDTLS_DIR ?= "mbedtls"
-# MBEDTLS v2.28.5
-SRC_URI_MBEDTLS = "git://github.com/ARMmbed/mbedtls.git;protocol=https;destsuffix=git/${TFA_MBEDTLS_DIR};branch=mbedtls-2.28;name=mbedtls"
-SRCREV_mbedtls = "47e8cc9db2e469d902b0e3093ae9e482c3d87188"
-LIC_FILES_CHKSUM_MBEDTLS = "file://mbedtls/LICENSE;md5=3b83ef96387f14655fc854ddc3c6bd57"
+# MBEDTLS v3.6.0
+SRC_URI_MBEDTLS = "git://github.com/ARMmbed/mbedtls.git;protocol=https;destsuffix=git/${TFA_MBEDTLS_DIR};nobranch=1;name=mbedtls"
+SRCREV_mbedtls = "2ca6c285a0dd3f33982dd57299012dacab1ff206"
+LIC_FILES_CHKSUM_MBEDTLS = "file://mbedtls/LICENSE;md5=379d5819937a6c2f1ef1630d341e026d"
 LICENSE_MBEDTLS = "Apache-2.0"
 # Add MBEDTLS to our sources
 SRC_URI:append = " ${@bb.utils.contains('SIGN_ENABLE', '1', '${SRC_URI_MBEDTLS}', '', d)}"
@@ -90,14 +90,14 @@ FWCONFIG_NAME ?= "fw-config"
 
 # Output the firwmare ddr
 TF_A_FWDDR ?= "0"
-TF_A_FWDDR:stm32mp25common = "1"
+TF_A_FWDDR:stm32mp2common = "1"
 
 FWDDR_NAME ?= "ddr_pmu"
 FWDDR_SUFFIX ?= "bin"
 
 FWDDR_SRC ?= "${STAGING_DATADIR}"
 FWDDR_SRC_SUBDIR ?= ""
-FWDDR_SRC_SUBDIR:stm32mp25common = "stm32mp2"
+FWDDR_SRC_SUBDIR:stm32mp2common = "stm32mp2"
 FWDDR_DIR ?= "${FWDDR_SRC}/${FWDDR_SRC_SUBDIR}"
 
 # Set default TF-A config
@@ -113,7 +113,7 @@ TF_A_SIGN_OF ?= "0x00000001"
 TF_A_ENCRYPT_SUFFIX ??= "${@bb.utils.contains('ENCRYPT_ENABLE', '1', '${ENCRYPT_SUFFIX}', '', d)}"
 TF_A_ENCRYPT_DC ?= "0x0E5F2025"
 TF_A_ENCRYPT_DC:stm32mp1common ?= "0x0E5F2025"
-TF_A_ENCRYPT_DC:stm32mp25common ?= "0x25205f0e"
+TF_A_ENCRYPT_DC:stm32mp2common ?= "0x25205f0e"
 
 TF_A_ENCRYPT_IMGVER ?= "0"
 TF_A_ENCRYPT_OF ?= "0x80000003"
@@ -139,24 +139,21 @@ EXTRA_OEMAKE += "${@bb.utils.contains('ENCRYPT_ENABLE', '1', bb.utils.contains('
 
 # Addons parameters for SIGN_TOOL
 SIGN_TOOL_EXTRA ?= ""
-SIGN_TOOL_EXTRA:stm32mp25common = "--header-version 2.2"
-
-# profile management for stm32mp15
-python __anonymous () {
-    profile_stm32mp15 = d.getVar('ST_OPTEE_PROFILE:stm32mp15')
-    if profile_stm32mp15:
-        profile = profile_stm32mp15
-    else:
-        profile =  d.getVar('ST_OPTEE_PROFILE')
-    if profile == "secure_and_system_services":
-        # force SYSRAM usage for stm32mp15 soc
-        d.setVar('ST_TF_A_EXTRA_OEMAKE_ADDONS_STM32MP15', "STM32MP1_OPTEE_IN_SYSRAM=1")
-}
+# stm32mp13 = header-version 2
+SIGN_TOOL_EXTRA_stm32mp13 = " ${@bb.utils.contains('ENCRYPT_ENABLE', '1', '-of ${TF_A_ENCRYPT_OF}', '-of ${TF_A_SIGN_OF}', d)}"
+# stm32mp15 = header-version 1
+SIGN_TOOL_EXTRA_stm32mp15 = " ${@bb.utils.contains('ENCRYPT_ENABLE', '1', '-of ${TF_A_ENCRYPT_OF}', '', d)}"
+SIGN_TOOL_EXTRA_stm32mp21 = " --header-version 2.3 ${@bb.utils.contains('ENCRYPT_ENABLE', '1', '-of ${TF_A_ENCRYPT_OF}', '-of ${TF_A_SIGN_OF}', d)}"
+SIGN_TOOL_EXTRA_stm32mp23 = " --header-version 2.2 ${@bb.utils.contains('ENCRYPT_ENABLE', '1', '-of ${TF_A_ENCRYPT_OF}', '-of ${TF_A_SIGN_OF}', d)}"
+SIGN_TOOL_EXTRA_stm32mp25 = " --header-version 2.2 ${@bb.utils.contains('ENCRYPT_ENABLE', '1', '-of ${TF_A_ENCRYPT_OF}', '-of ${TF_A_SIGN_OF}', d)}"
 
 # -----------------------------------------------
 # Enable use of work-shared folder
 TFA_SHARED_SOURCES ??= "1"
 STAGING_TFA_DIR = "${TMPDIR}/work-shared/${MACHINE}/tfa-source"
+DEBUG_PREFIX_MAP += " ${@bb.utils.contains('TFA_SHARED_SOURCES', '1', '-fmacro-prefix-map=${STAGING_TFA_DIR}=${TARGET_DBGSRC_DIR}', '', d)} "
+DEBUG_PREFIX_MAP += " ${@bb.utils.contains('TFA_SHARED_SOURCES', '1', '-fdebug-prefix-map=${STAGING_TFA_DIR}=${TARGET_DBGSRC_DIR}', '', d)} "
+
 # Make sure to move ${S} to STAGING_TFA_DIR. We can't just
 # create the symlink in advance as the git fetcher can't cope with
 # the symlink.
@@ -208,14 +205,34 @@ do_compile() {
             # Init specific soc settings
             soc_extra_opt=""
             soc_suffix=""
+            soc_name=""
             if [ -n "${STM32MP_SOC_NAME}" ]; then
                 for soc in ${STM32MP_SOC_NAME}; do
                     if [ "$(echo ${dt} | grep -c ${soc})" -eq 1 ]; then
                         soc_extra_opt="$(echo ${soc} | awk '{print toupper($0)}')=1"
                         soc_suffix="-${soc}"
-                        if [ "${soc}" = "stm32mp15" ]; then
-                            soc_extra_opt="${soc_extra_opt} ${ST_TF_A_EXTRA_OEMAKE_ADDONS_STM32MP15}"
-                        fi
+
+                        SIGN_TOOL_EXTRA_soc="${SIGN_TOOL_EXTRA}"
+                        case ${soc} in
+                        stm32mp13)
+                            SIGN_TOOL_EXTRA_soc="${SIGN_TOOL_EXTRA_stm32mp13}"
+                            ;;
+                        stm32mp15)
+                            SIGN_TOOL_EXTRA_soc="${SIGN_TOOL_EXTRA_stm32mp15}"
+                            if echo ${config} | grep -q 'optee-'; then
+                                soc_extra_opt="${soc_extra_opt} STM32MP1_OPTEE_IN_SYSRAM=1"
+                            fi
+                            ;;
+                        stm32mp21)
+                            SIGN_TOOL_EXTRA_soc="${SIGN_TOOL_EXTRA_stm32mp21}"
+                            ;;
+                        stm32mp23)
+                            SIGN_TOOL_EXTRA_soc="${SIGN_TOOL_EXTRA_stm32mp23}"
+                            ;;
+                        stm32mp25)
+                            SIGN_TOOL_EXTRA_soc="${SIGN_TOOL_EXTRA_stm32mp25}"
+                            ;;
+                        esac
                     fi
                 done
             fi
@@ -225,11 +242,22 @@ do_compile() {
                 ${TF_A_METADATA_TOOL} ${TF_A_METADATA_TOOL_ARGS} "${B}/${TF_A_METADATA_NAME}.${TF_A_METADATA_SUFFIX}"
             fi
 
+            # generate dt to check the content
+            oe_runmake -C "${S}" BUILD_PLAT="${B}/${config}${soc_suffix}-${dt}" DTB_FILE_NAME="${dt}.dtb" ${extra_opt} ${soc_extra_opt} dtbs
+
+            # check which pmic1l is present on dtb
+            pcmi1_present=$(${STAGING_BINDIR_NATIVE}/fdtdump ${B}/${config}${soc_suffix}-${dt}/fdts/${dt}-bl2.dtb 2>/dev/null | grep  -c "st,stpmic1l" || ${HOSTTOOLS_DIR}/true)
+            if [ -f "${B}/${config}${soc_suffix}-${dt}/fdts/${dt}-bl2.dtb" ]; then
+                if [ $pcmi1_present -gt 0 ]; then
+                    # st pmic1l is present, need to force to compilation with specific pcmi1l optionn
+                    soc_extra_opt="${soc_extra_opt} STM32MP_STPMIC1L=1"
+                fi
+            fi
+
             # Init specific ddr settings
             ddr_extra_opt=""
             if [ "${TF_A_FWDDR}" = "1" ]; then
                 # Detect ddr type if it's present
-                oe_runmake -C "${S}" BUILD_PLAT="${B}/${config}${soc_suffix}-${dt}" DTB_FILE_NAME="${dt}.dtb" ${extra_opt} ${soc_extra_opt} dtbs
                 if [ -f "${B}/${config}${soc_suffix}-${dt}/fdts/${dt}-bl2.dtb" ]; then
                     ddr_dtb_node=$(${STAGING_BINDIR_NATIVE}/fdtget -l ${B}/${config}${soc_suffix}-${dt}/fdts/${dt}-bl2.dtb /soc | grep ddr | head -n 1)
                     ddr_propertie=$(${STAGING_BINDIR_NATIVE}/fdtget ${B}/${config}${soc_suffix}-${dt}/fdts/${dt}-bl2.dtb /soc/${ddr_dtb_node} st,mem-name || echo "none")
@@ -306,12 +334,6 @@ do_compile() {
                             [ "$(echo ${dt} | grep -c ${soc})" -eq 1 ] && sign_key=$(echo ${SIGN_KEY_PATH_LIST} | cut -d',' -f${k})
                         done
                     fi
-                    # Init default '-of' option for signing case
-                    tf_a_sign_of_opt=""
-                    dd if="${B}/${config}${soc_suffix}-${dt}/${tfa_basename}-${dt}-${config}.${TF_A_SUFFIX}" of=header.dump bs=1 count=4 skip=72 > /dev/null 2> /dev/null
-                    temp_version=$(od -A o -t dI header.dump | head -n 1 | cut -d' ' -f2- | sed "s/ //g")
-                    rm -f header.dump
-                    [ "$(expr $temp_version / 65536)" = "2" ] && tf_a_sign_of_opt="-of ${TF_A_SIGN_OF}"
                     # Init default encryption options for signing tool
                     tf_a_encrypt_opts=""
                     if [ "${ENCRYPT_ENABLE}" = "1" ]; then
@@ -330,10 +352,19 @@ do_compile() {
                             --enc-dc ${TF_A_ENCRYPT_DC} \
                             --image-version ${TF_A_ENCRYPT_IMGVER} \
                             "
-                        # Set specific '-of' option for encryption
-                        tf_a_sign_of_opt="-of ${TF_A_ENCRYPT_OF}"
                     fi
                     # Sign tf-a binary
+                    bbnote "${SIGN_TOOL} \
+                        -bin "${B}/${config}${soc_suffix}-${dt}/${tfa_basename}-${dt}-${config}.${TF_A_SUFFIX}" \
+                        -o "${B}/${config}${soc_suffix}-${dt}/${tfa_basename}-${dt}-${config}${TF_A_ENCRYPT_SUFFIX}${TF_A_SIGN_SUFFIX}.${TF_A_SUFFIX}" \
+                        --password ${SIGN_KEY_PASS} \
+                        --public-key $(ls -1 $(dirname ${sign_key})/publicKey*.pem | tr '\n' '\t') \
+                        --private-key ${sign_key} \
+                        --type fsbl \
+                        --silent \
+                        ${SIGN_TOOL_EXTRA_soc} \
+                        ${tf_a_encrypt_opts} "
+
                     ${SIGN_TOOL} \
                         -bin "${B}/${config}${soc_suffix}-${dt}/${tfa_basename}-${dt}-${config}.${TF_A_SUFFIX}" \
                         -o "${B}/${config}${soc_suffix}-${dt}/${tfa_basename}-${dt}-${config}${TF_A_ENCRYPT_SUFFIX}${TF_A_SIGN_SUFFIX}.${TF_A_SUFFIX}" \
@@ -342,10 +373,20 @@ do_compile() {
                         --private-key ${sign_key} \
                         --type fsbl \
                         --silent \
-                        ${SIGN_TOOL_EXTRA} \
-                        ${tf_a_encrypt_opts} \
-                        ${tf_a_sign_of_opt}
+                        ${SIGN_TOOL_EXTRA_soc} \
+                        ${tf_a_encrypt_opts}
                     if [ "${TF_A_ENABLE_DEBUG_WRAPPER}" = "1" ]; then
+                         bbnote "${SIGN_TOOL} \
+                            -bin "${B}/${config}${soc_suffix}-${dt}/debug-${tfa_basename}-${dt}-${config}.${TF_A_SUFFIX}" \
+                            -o "${B}/${config}${soc_suffix}-${dt}/debug-${tfa_basename}-${dt}-${config}${TF_A_ENCRYPT_SUFFIX}${TF_A_SIGN_SUFFIX}.${TF_A_SUFFIX}" \
+                            --password ${SIGN_KEY_PASS} \
+                            --public-key $(ls -1 $(dirname ${sign_key})/publicKey*.pem | tr '\n' '\t') \
+                            --private-key "${sign_key}" \
+                            --type fsbl \
+                            --silent \
+                            ${SIGN_TOOL_EXTRA_soc} \
+                            ${tf_a_encrypt_opts}"
+
                         ${SIGN_TOOL} \
                             -bin "${B}/${config}${soc_suffix}-${dt}/debug-${tfa_basename}-${dt}-${config}.${TF_A_SUFFIX}" \
                             -o "${B}/${config}${soc_suffix}-${dt}/debug-${tfa_basename}-${dt}-${config}${TF_A_ENCRYPT_SUFFIX}${TF_A_SIGN_SUFFIX}.${TF_A_SUFFIX}" \
@@ -354,9 +395,8 @@ do_compile() {
                             --private-key "${sign_key}" \
                             --type fsbl \
                             --silent \
-                            ${SIGN_TOOL_EXTRA} \
-                            ${tf_a_encrypt_opts} \
-                            ${tf_a_sign_of_opt}
+                            ${SIGN_TOOL_EXTRA_soc} \
+                            ${tf_a_encrypt_opts}
                     fi
                 fi
             fi
@@ -428,7 +468,7 @@ export_binaries() {
                         install -d "${fip_deploydir_bl31}"
                         # Install BL31 binary
                         if [ -f "${B}/${config}${soc_suffix}-${dt}/${BL31_BASENAME}.${BL31_SUFFIX}" ]; then
-                            install -m 644 "${B}/${config}${soc_suffix}-${dt}/${BL31_BASENAME}.${BL31_SUFFIX}" "${fip_deploydir_bl31}/${tfa_basename}-${BL31_BASENAME_DEPLOY}${soc_suffix}-${config}.${BL31_SUFFIX}"
+                            install -m 644 "${B}/${config}${soc_suffix}-${dt}/${BL31_BASENAME}.${BL31_SUFFIX}" "${fip_deploydir_bl31}/${tfa_basename}-${BL31_BASENAME_DEPLOY}-${dt}-${config}.${BL31_SUFFIX}"
                         fi
                         # Install BL31 devicetree
                         if [ -f "${B}/${config}${soc_suffix}-${dt}/fdts/${dt}-${BL31_BASENAME}.${DT_SUFFIX}" ]; then
@@ -485,9 +525,11 @@ export_binaries() {
     fi
 }
 
-do_install:append() {
-    export_binaries ${D}${FIP_DIR_TFA_BASE}
+tf_a_sysroot_populate() {
+  export_binaries ${SYSROOT_DESTDIR}${FIP_DIR_TFA_BASE}
 }
+SYSROOT_PREPROCESS_FUNCS =+ "tf_a_sysroot_populate"
+SYSROOT_DIRS:append = " ${FIP_DIR_TFA_BASE}"
 
 do_deploy[sstate-outputdirs] = "${DEPLOY_DIR_IMAGE}${FIP_DIR_TFA_BASE}"
 do_deploy() {
@@ -495,8 +537,3 @@ do_deploy() {
 }
 
 addtask deploy before do_build after do_install
-
-PACKAGES =+ "${PN}-fip"
-
-FILES:${PN}-fip = "${FIP_DIR_TFA_BASE}"
-SYSROOT_DIRS:append = " ${FIP_DIR_TFA_BASE}"

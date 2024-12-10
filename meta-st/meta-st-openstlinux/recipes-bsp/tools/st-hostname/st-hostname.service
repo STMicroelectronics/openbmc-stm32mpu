@@ -1,0 +1,13 @@
+[Unit]
+Description=ST hostname
+DefaultDependencies=false
+After=mount-partitions.service
+Before=local-fs.target serial-getty@ttySTM0.service systemd-networkd.service
+
+[Service]
+Type=oneshot
+ExecStart=-//usr/bin/st-hostname.sh
+WatchdogSec=45
+
+[Install]
+WantedBy=multi-user.target

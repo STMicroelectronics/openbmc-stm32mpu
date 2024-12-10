@@ -94,6 +94,9 @@ if [ $action == "start" ]; then
         exit 1
         fi
         fmw_name="${fmw_basename}.elf"
+        if [ -e lib/firmware/${fmw_basename}_stripped.elf ]; then
+            fmw_name="${fmw_basename}_stripped.elf"
+        fi
     fi
 
     if [ ! -e lib/firmware/${fmw_name} ]; then
@@ -120,7 +123,6 @@ if [ $action == "start" ]; then
     # load and start firmware
     echo $fmw_name > $rproc_class_dir/firmware
     echo start > $rproc_class_dir/state
-
 fi
 
 ################

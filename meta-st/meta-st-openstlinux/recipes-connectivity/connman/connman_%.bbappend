@@ -1,6 +1,11 @@
 # Disable connman service at startup
 SYSTEMD_AUTO_ENABLE:${PN} = "disable"
 
+# Also, disable the connman-wait-online and connman-vpn services
+# to avoid any issues while installing their associated packages
+SYSTEMD_AUTO_ENABLE:${PN}-wait-online = "disable"
+SYSTEMD_AUTO_ENABLE:${PN}-vpn = "disable"
+
 # Set low alternative priority for resolv-conf to keep systemd by default
 ALTERNATIVE_PRIORITY[resolv-conf] = "10"
 

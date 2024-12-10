@@ -12,8 +12,8 @@ B = "${WORKDIR}/build"
 # Configure build dir for externalsrc class usage through devtool
 EXTERNALSRC_BUILD:pn-${PN} = "${WORKDIR}/build"
 
-SRC_URI:append = " ${@bb.utils.contains('BOOTSCHEME_LABELS', 'fastboot', 'file://fragment-04-fastboot_mmc0.fb_cfg;subdir=fragments/features', '', d)}"
-SRC_URI:append = " ${@bb.utils.contains('BOOTSCHEME_LABELS', 'fastboot', 'file://fragment-05-fastboot_mmc1.fb_cfg;subdir=fragments/features', '', d)}"
+SRC_URI:append = " ${@bb.utils.contains_any('BOOTSCHEME_LABELS', 'fastboot fastboot-opteemin', 'file://fragment-04-fastboot_mmc0.fb_cfg;subdir=fragments/features', '', d)}"
+SRC_URI:append = " ${@bb.utils.contains_any('BOOTSCHEME_LABELS', 'fastboot fastboot-opteemin', 'file://fragment-05-fastboot_mmc1.fb_cfg;subdir=fragments/features', '', d)}"
 
 EXTRA_OEMAKE += "${@bb.utils.contains('EXTERNAL_DT_ENABLED', '1', 'EXT_DTS=${STAGING_EXTDT_DIR}/${EXTDT_DIR_UBOOT}', '', d)}"
 
@@ -21,13 +21,12 @@ EXTRA_OEMAKE += "${@bb.utils.contains('EXTERNAL_DT_ENABLED', '1', 'EXT_DTS=${STA
 ELF_DEBUG_ENABLE ?= "1"
 UBOOT_ELF = "${@'u-boot' if d.getVar('ELF_DEBUG_ENABLE') == '1' else ''}"
 
-# Init default MTDPART configurations
-UBOOT_MTDPART_CHECK_ENABLE ??= ""
-UBOOT_MTDPART_CHECK ??= ""
-
 # -----------------------------------------------
 # Enable use of work-shared folder
 STAGING_UBOOT_DIR = "${TMPDIR}/work-shared/${MACHINE}/uboot-source"
+DEBUG_PREFIX_MAP += " -fmacro-prefix-map=${STAGING_UBOOT_DIR}=${TARGET_DBGSRC_DIR} "
+DEBUG_PREFIX_MAP += " -fdebug-prefix-map=${STAGING_UBOOT_DIR}=${TARGET_DBGSRC_DIR} "
+
 # Make sure to move ${S} to STAGING_UBOOT_DIR. We can't just
 # create the symlink in advance as the git fetcher can't cope with
 # the symlink.
@@ -123,54 +122,6 @@ do_generate_defconfig() {
 addtask generate_defconfig before do_configure after do_patch
 do_generate_defconfig[prefuncs] += "get_fastboot_fragments"
 do_generate_defconfig[vardeps] += "SRC_URI"
-
-# -----------------------------------------------------------------------------
-# Append configure to handle specific MTDPART check if required
-#
-do_configure:append() {
-    if [ -n "${UBOOT_MTDPART_CHECK_ENABLE}" ]; then
-        if [ -n "${UBOOT_CONFIG}" ]; then
-            for config in ${UBOOT_MACHINE}; do
-                for mtdpart_check_config in ${UBOOT_MTDPART_CHECK_ENABLE}; do
-                    if [ "${mtdpart_check_config}" = "${config}" ]; then
-                        if [ -f "${B}/${config}/.config" ]; then
-                            for mtdpart_chk in $(echo "${UBOOT_MTDPART_CHECK}"); do
-                                mtdpart_conf=$(echo ${mtdpart_chk} | cut -d'=' -f1)
-                                mtdpart_set=$(echo ${mtdpart_chk} | cut -d'=' -f2)
-                                if grep -q "${mtdpart_conf}=" "${B}/${config}/.config"; then
-                                    bbnote "Found ${mtdpart_conf} definition in '.config' file from '${config}/' build folder"
-                                    # Get the current MTDPART configuration settings (and remove the double quotes)
-                                    mtdpart_cur=$(grep "${mtdpart_conf}=" "${B}/${config}/.config" | cut -d'=' -f2 | sed 's/"//g')
-                                    # Init for loop on configured partition list
-                                    i=0
-                                    mtdpart_count=$(echo "${mtdpart_cur}" | awk -F',' '{print NF-1}')
-                                    while [ ${i} -lt "${mtdpart_count}" ]; do
-                                        i=$(expr $i + 1)
-                                        mtdpart_cur_size=$(echo ${mtdpart_cur} | cut -d',' -f${i} | sed 's/\([0-9]*[mk]\).*/\1/')
-                                        mtdpart_set_size=$(echo ${mtdpart_set} | cut -d',' -f${i} | sed 's/\([0-9]*\).*/\1/')
-                                        # Make sure to use KiB format for partition size
-                                        if [ -z "$(echo ${mtdpart_cur_size} | grep m)" ]; then
-                                            cur_size_kb=$(echo ${mtdpart_cur_size} | sed 's/k//')
-                                        else
-                                            cur_size_kb=$(expr $(echo ${mtdpart_cur_size} | sed 's/m//') \* 1024)
-                                        fi
-                                        # Compare partition size
-                                        if [ "${mtdpart_set_size}" != "${cur_size_kb}" ]; then
-                                            bbfatal "The default settings for ${mtdpart_conf} (${mtdpart_cur}) is different from the one configured (${mtdpart_set}) : ${mtdpart_set_size}k versus ${mtdpart_cur_size}"
-                                        fi
-                                    done
-                                    bbnote "Found ${mtdpart_set} settings for ${mtdpart_conf} in '.config' file from '${config}/' build folder : configuration is ok"
-                                else
-                                    bbfatal "${mtdpart_conf} definition not found in '.config' file from '${config}/' build folder : may need update for CONFIG name..."
-                                fi
-                            done
-                        fi
-                    fi
-                done
-            done
-        fi
-    fi
-}
 
 # -----------------------------------------------------------------------------
 # Append compile to handle specific device tree compilation
@@ -283,19 +234,19 @@ export_binaries() {
     fi
 }
 
-do_install:append() {
-    export_binaries ${D}${FIP_DIR_UBOOT}
-}
-
 do_deploy[sstate-outputdirs] = "${DEPLOY_DIR_IMAGE}${FIP_DIR_UBOOT}"
 do_deploy() {
     export_binaries ${DEPLOYDIR}
 }
 addtask deploy before do_build after do_install
 
-PACKAGES =+ "${PN}-fip"
+# do not populate image directory during install
+do_install[noexec] = "1"
 
-FILES:${PN}-fip = "${FIP_DIR_UBOOT}"
+u_boot_sysroot_populate() {
+    export_binaries ${SYSROOT_DESTDIR}/${FIP_DIR_UBOOT}
+}
+SYSROOT_PREPROCESS_FUNCS =+ "u_boot_sysroot_populate"
 SYSROOT_DIRS:append = " ${FIP_DIR_UBOOT}"
 
 # ---------------------------------------------------------------------
@@ -305,7 +256,4 @@ INSANE_SKIP:${PN} += "ldflags"
 # Avoid QA Issue: ELF binary has relocations in .text
 # (uboot no need -fPIC option : remove check)
 INSANE_SKIP:${PN} += "textrel"
-# ---------------------------------------------------------------------
-# Avoid QA Issue: contains reference to TMPDIR [buildpaths]
-INSANE_SKIP:${PN} += "buildpaths"
 

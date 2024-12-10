@@ -50,7 +50,7 @@ RDEPENDS:packagegroup-framework-tools-extra-kernel = "\
     nbench-byte     \
     iozone3         \
     bonnie++        \
-    bonnie-scripts  \
+    bonnie++-scripts  \
     ltp             \
     elfutils        \
     formfactor      \
@@ -58,6 +58,7 @@ RDEPENDS:packagegroup-framework-tools-extra-kernel = "\
     lirc            \
     \
     dhrystone       \
+    devmem2         \
     "
 
 RDEPENDS:packagegroup-framework-tools-extra-kernel:append:arm = "\
@@ -119,5 +120,5 @@ RDEPENDS:packagegroup-framework-tools-extra-pkcs11 = "\
     opensc \
 "
 RDEPENDS:packagegroup-framework-tools-extra-pkcs11:append:aarch64 = " \
-    virtual/optee-os-ta-pkcs11 \
+    virtual-optee-os-ta-pkcs11 \
 "

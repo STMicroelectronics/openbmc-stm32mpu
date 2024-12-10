@@ -1,0 +1,765 @@
+From 73465990cb262fa20ba7db6f540590df13b3dd35 Mon Sep 17 00:00:00 2001
+From: Christophe Priouzeau <christophe.priouzeau@foss.st.com>
+Date: Mon, 21 Oct 2024 10:45:52 +0200
+Subject: [PATCH] v0.12.0-stm32mp-r2
+
+---
+Upstream-Status: Pending
+
+ src/jtag/drivers/stlink_usb.c |  34 ++++--
+ src/target/cortex_m.c         |  12 +++
+ tcl/board/stm32mp21x_dk.cfg   |  11 ++
+ tcl/board/stm32mp23x_dk.cfg   |  11 ++
+ tcl/board/stm32mp25x_dk.cfg   |  11 ++
+ tcl/target/stm32mp15x.cfg     |   1 +
+ tcl/target/stm32mp21x.cfg     | 197 ++++++++++++++++++++++++++++++++++
+ tcl/target/stm32mp23x.cfg     | 179 ++++++++++++++++++++++++++++++
+ tcl/target/stm32mp25x.cfg     | 191 ++++++++++++++++++++++++++++++++
+ 9 files changed, 637 insertions(+), 10 deletions(-)
+ create mode 100644 tcl/board/stm32mp21x_dk.cfg
+ create mode 100644 tcl/board/stm32mp23x_dk.cfg
+ create mode 100644 tcl/board/stm32mp25x_dk.cfg
+ create mode 100644 tcl/target/stm32mp21x.cfg
+ create mode 100644 tcl/target/stm32mp23x.cfg
+ create mode 100644 tcl/target/stm32mp25x.cfg
+
+diff --git a/src/jtag/drivers/stlink_usb.c b/src/jtag/drivers/stlink_usb.c
+index 8cf3b0c73..e86e8f9f7 100644
+--- a/src/jtag/drivers/stlink_usb.c
++++ b/src/jtag/drivers/stlink_usb.c
+@@ -1603,7 +1603,10 @@ static int stlink_usb_mode_enter(void *handle, enum stlink_mode type)
+ 				h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV1_ENTER;
+ 			else
+ 				h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_ENTER;
+-			h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_ENTER_JTAG_NO_RESET;
++			if (jtag_get_srst())
++				h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_ENTER_JTAG_RESET;
++			else
++				h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_ENTER_JTAG_NO_RESET;
+ 			break;
+ 		case STLINK_MODE_DEBUG_SWD:
+ 			h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
+@@ -4180,11 +4183,8 @@ static int stlink_dap_reinit_interface(void)
+ 	stlink_dap_handle->reconnect_pending = false;
+ 	/* on new FW, calling mode-leave closes all the opened AP; reopen them! */
+ 	if (stlink_dap_handle->version.flags & STLINK_F_HAS_AP_INIT)
+-		for (unsigned int apsel = 0; apsel <= DP_APSEL_MAX; apsel++)
+-			if (test_bit(apsel, opened_ap)) {
+-				clear_bit(apsel, opened_ap);
+-				stlink_dap_open_ap(apsel);
+-			}
++		bitmap_zero(opened_ap, DP_APSEL_MAX + 1);
++
+ 	return ERROR_OK;
+ }
+ 
+@@ -4235,7 +4235,7 @@ static int stlink_dap_check_reconnect(struct adiv5_dap *dap)
+ {
+ 	int retval;
+ 
+-	if (!dap->do_reconnect)
++	if (!dap->do_reconnect && !stlink_dap_handle->reconnect_pending)
+ 		return ERROR_OK;
+ 
+ 	retval = stlink_dap_reinit_interface();
+@@ -5161,9 +5161,23 @@ static int stlink_dap_quit(void)
+ static int stlink_dap_reset(int req_trst, int req_srst)
+ {
+ 	LOG_DEBUG("stlink_dap_reset(%d)", req_srst);
+-	return stlink_usb_assert_srst(stlink_dap_handle,
+-		req_srst ? STLINK_DEBUG_APIV2_DRIVE_NRST_LOW
+-				 : STLINK_DEBUG_APIV2_DRIVE_NRST_HIGH);
++
++	if (req_srst) {
++		enum reset_types cfg = jtag_get_reset_config();
++
++		if ((cfg & RESET_SRST_PULLS_TRST) || !(cfg & RESET_SRST_NO_GATING)) {
++			/*
++			 * srst will probably reset the TAP/DAP (e.g. SWD back in JTAG mode).
++			 * Leave current mode and force a reconnect at next queue flush.
++			 */
++			stlink_usb_mode_leave(stlink_dap_handle, stlink_dap_handle->st_mode);
++			stlink_dap_handle->reconnect_pending = true;
++		}
++
++		return stlink_usb_assert_srst(stlink_dap_handle, STLINK_DEBUG_APIV2_DRIVE_NRST_LOW);
++	}
++
++	return stlink_usb_assert_srst(stlink_dap_handle, STLINK_DEBUG_APIV2_DRIVE_NRST_HIGH);
+ }
+ 
+ /** */
+diff --git a/src/target/cortex_m.c b/src/target/cortex_m.c
+index 791a43242..a300992a4 100644
+--- a/src/target/cortex_m.c
++++ b/src/target/cortex_m.c
+@@ -988,6 +988,18 @@ static int cortex_m_poll_one(struct target *target)
+ 			 * and keep it until the next poll to allow its detection */
+ 			return ERROR_OK;
+ 		}
++
++		/* refresh status bits */
++		retval = cortex_m_read_dhcsr_atomic_sticky(target);
++		if (retval != ERROR_OK)
++			return retval;
++
++		/* If still under reset, quit and re-check at next poll */
++		if (cortex_m->dcb_dhcsr_cumulated_sticky & S_RESET_ST) {
++			cortex_m->dcb_dhcsr_cumulated_sticky &= ~S_RESET_ST;
++			return ERROR_OK;
++		}
++
+ 		/* S_RESET_ST was expected (in a reset command). Continue processing
+ 		 * to quickly get out of TARGET_RESET state */
+ 	}
+diff --git a/tcl/board/stm32mp21x_dk.cfg b/tcl/board/stm32mp21x_dk.cfg
+new file mode 100644
+index 000000000..125e93da3
+--- /dev/null
++++ b/tcl/board/stm32mp21x_dk.cfg
+@@ -0,0 +1,11 @@
++# SPDX-License-Identifier: GPL-2.0-or-later
++
++# Script for stm32mp21x DISCO board
++
++source [find interface/stlink-dap.cfg]
++
++transport select dapdirect_swd
++
++source [find target/stm32mp21x.cfg]
++
++reset_config srst_only
+diff --git a/tcl/board/stm32mp23x_dk.cfg b/tcl/board/stm32mp23x_dk.cfg
+new file mode 100644
+index 000000000..fc0d536af
+--- /dev/null
++++ b/tcl/board/stm32mp23x_dk.cfg
+@@ -0,0 +1,11 @@
++# SPDX-License-Identifier: GPL-2.0-or-later
++
++# Script for stm32mp23x DISCO board
++
++source [find interface/stlink-dap.cfg]
++
++transport select dapdirect_swd
++
++source [find target/stm32mp23x.cfg]
++
++reset_config srst_only
+diff --git a/tcl/board/stm32mp25x_dk.cfg b/tcl/board/stm32mp25x_dk.cfg
+new file mode 100644
+index 000000000..e99a88508
+--- /dev/null
++++ b/tcl/board/stm32mp25x_dk.cfg
+@@ -0,0 +1,11 @@
++# SPDX-License-Identifier: GPL-2.0-or-later
++
++# Script for stm32mp25x DISCO board
++
++source [find interface/stlink-dap.cfg]
++
++transport select dapdirect_swd
++
++source [find target/stm32mp25x.cfg]
++
++reset_config srst_only
+diff --git a/tcl/target/stm32mp15x.cfg b/tcl/target/stm32mp15x.cfg
+index bcdda73e9..b2fc973ed 100644
+--- a/tcl/target/stm32mp15x.cfg
++++ b/tcl/target/stm32mp15x.cfg
+@@ -121,6 +121,7 @@ proc rcc_enable_traceclk {} {
+ }
+ 
+ # FIXME: most of handler below will be removed once reset framework get merged
++$_CHIPNAME.cm4  configure -event reset-assert        { }
+ $_CHIPNAME.ap1  configure -event reset-deassert-pre  {adapter deassert srst deassert trst;catch {dap init};catch {$::_CHIPNAME.dap apid 1}}
+ $_CHIPNAME.ap2  configure -event reset-deassert-pre  {dbgmcu_enable_debug;rcc_enable_traceclk}
+ $_CHIPNAME.cpu0 configure -event reset-deassert-pre  {$::_CHIPNAME.cpu0 arp_examine}
+diff --git a/tcl/target/stm32mp21x.cfg b/tcl/target/stm32mp21x.cfg
+new file mode 100644
+index 000000000..38eecc81b
+--- /dev/null
++++ b/tcl/target/stm32mp21x.cfg
+@@ -0,0 +1,197 @@
++# SPDX-License-Identifier: GPL-2.0-or-later
++
++# STMicroelectronics STM32MP21x
++# STM32MP21x devices support both JTAG and SWD transports.
++
++# HLA does not support multi-cores nor custom CSW nor AP other than 0
++if { [using_hla] } {
++	echo "ERROR: HLA transport cannot work with this target."
++	shutdown
++}
++
++source [find target/swj-dp.tcl]
++source [find mem_helper.tcl]
++
++if { [info exists CHIPNAME] } {
++	set _CHIPNAME $CHIPNAME
++} else {
++	set _CHIPNAME stm32mp21x
++}
++
++# Set to 0 to prevent CPU examine. Default examine them
++if { ! [info exists EN_CA35] } { set EN_CA35 1 }
++if { ! [info exists EN_CM33] } { set EN_CM33 1 }
++
++set _ENDIAN little
++
++# jtag scan chain
++if { [info exists CPUTAPID] } {
++	set _CPUTAPID $CPUTAPID
++} else {
++	if { [using_jtag] } {
++		set _CPUTAPID 0x6ba00477
++	} {
++		set _CPUTAPID 0x6ba02477
++	}
++}
++
++# Chip Level TAP Controller, only in jtag mode
++if { [info exists CLCTAPID] } {
++	set _CLCTAPID $CLCTAPID
++} else {
++	set _CLCTAPID 0x16503041
++}
++
++swj_newdap $_CHIPNAME tap -expected-id $_CPUTAPID -irlen 4 -ircapture 0x01 -irmask 0x0f
++if { [using_jtag] } {
++	swj_newdap $_CHIPNAME.clc tap -expected-id $_CLCTAPID -irlen 5
++}
++
++dap create $_CHIPNAME.dap -chain-position $_CHIPNAME.tap
++
++# define AXI & APB Memory Access Ports
++# NOTE: do not change the order of target create
++target create $_CHIPNAME.ap0 mem_ap -dap $_CHIPNAME.dap -ap-num 0
++target create $_CHIPNAME.ap1 mem_ap -dap $_CHIPNAME.dap -ap-num 1
++target create $_CHIPNAME.axi mem_ap -dap $_CHIPNAME.dap -ap-num 2
++target create $_CHIPNAME.ap3 mem_ap -dap $_CHIPNAME.dap -ap-num 3 -defer-examine
++
++# define the Cortex-A35
++cti create $_CHIPNAME.cti.a35 -dap $_CHIPNAME.dap -ap-num 1 -baseaddr 0x80220000
++target create $_CHIPNAME.a35 aarch64 -dap $_CHIPNAME.dap -dbgbase 0x80210000 -ap-num 1 -cti $_CHIPNAME.cti.a35 -defer-examine
++
++# define the Cortex-M33
++target create $_CHIPNAME.m33 cortex_m -dap $_CHIPNAME.dap -ap-num 3 -defer-examine
++cti create $_CHIPNAME.cti.m33 -dap $_CHIPNAME.dap -ap-num 3 -baseaddr 0xe0042000
++
++# define the system CTIs
++cti create $_CHIPNAME.cti.sys0 -dap $_CHIPNAME.dap -ap-num 1 -baseaddr 0x80080000
++cti create $_CHIPNAME.cti.sys1 -dap $_CHIPNAME.dap -ap-num 1 -baseaddr 0x80090000
++
++targets $_CHIPNAME.a35
++
++reset_config srst_gates_jtag srst_pulls_trst
++
++adapter speed 5000
++adapter srst pulse_width 200
++# wait 1 seconds for bootrom
++adapter srst delay 1000
++
++# set CSW for AXI
++$_CHIPNAME.dap apsel 2
++$_CHIPNAME.dap apcsw 0x12800000
++
++# mmw with target selection
++proc target_mmw {target reg setbits clearbits} {
++	set val [eval $target read_memory $reg 32 1]
++	set val [expr {($val & ~$clearbits) | $setbits}]
++	eval $target mww $reg $val
++}
++
++lappend _telnet_autocomplete_skip _enable_debug
++# Uses AP0 and AXI
++proc _enable_debug {} {
++	# Enable DBGMCU clock in RC
++	$::_CHIPNAME.axi mww 0x44200520 0x500
++
++	# set debug enable bits in DBGMCU_CR to get ap3/cm33 visible
++	$::_CHIPNAME.ap0 mww 0x80001004 0x7
++
++	# Freeze watchdogs on CPU halt
++	$::_CHIPNAME.axi mww 0x440a003c 0x00000026
++	$::_CHIPNAME.axi mww 0x440a0040 0x00000038
++}
++
++lappend _telnet_autocomplete_skip _handshake_with_wrapper
++# Uses AP0 and AP1
++proc _handshake_with_wrapper { halt } {
++	# Check for new handshake on DBGMCU_CR, otherwise switch to legacy one
++
++	# Wrapper inits 0x04, OpenOCD sets 0x07, wrapper replies 0x01
++#	set dbgmcu_cr [eval $::_CHIPNAME.ap0 read_memory 0x80001004 32 1]
++#	if {[expr {($dbgmcu_cr & 0x07) == 0x04}]} {
++#		if { $halt } {
++#			$::_CHIPNAME.ap0 mww 0x80001004 [expr {$dbgmcu_cr | 0x03}]
++#		} else {
++#			$::_CHIPNAME.ap0 mww 0x80001004 [expr {$dbgmcu_cr | 0x02}]
++#		}
++#		set dbgmcu_cr [eval $::_CHIPNAME.ap0 read_memory 0x80001004 32 1]
++#		if {[expr {($dbgmcu_cr & 0x07) != 0x01}]} {
++#			echo "\nWARNING: FSBL wrapper not detected.\n"
++#		}
++#		return
++#	}
++
++	# Skip legacy, as it requires CA35
++#	if { ! $::EN_CA35 } { return }
++
++#	echo "INFO: Check for legacy wrapper"
++
++	# set few bits in CPU0 DBG_CLAIM to verify write permission
++	# FSBL wrapper will clear CPU0 DBG_CLAIM[0]
++	# toggle CPU0 DBG_CLAIM[0]
++	$::_CHIPNAME.ap1 mww 0x80210fa0 0x0b
++	set claim [$::_CHIPNAME.ap1 read_memory 0x80210fa4 32 1]
++	if {[expr {$claim & 0xfe}] != 0x0a} {
++		error "ERROR: cannot write in DBG_CLAIM. Missing FSBL wrapper?"
++	}
++	if {[expr {$claim & 1}]} {
++		echo "\nWARNING: FSBL wrapper not detected.\n"
++	}
++	$::_CHIPNAME.ap1 mww 0x80210fa4 0x0b
++}
++
++lappend _telnet_autocomplete_skip _enable_dbgmcu_on_devboot
++# In DEV BOOT the BootROM does not completes the sequence to enable the
++# visibility of DBGMCU on AP0.
++# Write a value in DBGMCU_DBG_AUTH_DEV from CID1.
++# Returns 1 if DEV BOOT is detected
++# Uses AP2 (AXI bus)
++proc _enable_dbgmcu_on_devboot {} {
++	$::_CHIPNAME.axi mww 0x44230004 0
++	set boot_pins [expr {[$::_CHIPNAME.axi read_memory 0x44230000 32 1] & 0xf}]
++	if {$boot_pins != 0x3 && $boot_pins != 0xc} {return 0}
++
++	set rifsc_rimc_cr [$::_CHIPNAME.axi read_memory 0x42080c00 32 1]
++	if {$rifsc_rimc_cr != 0x00008710} {
++		echo "RIFSC_RIMC_CR modified, skip activation of DBGMCU"
++		return 1
++	}
++
++	# Enable DBGMCU clock in RC
++	$::_CHIPNAME.axi mww 0x44200520 0x500
++
++	# Change DAP (AXI) CID, write in DBGMCU, set back DAP CID
++	$::_CHIPNAME.axi mww 0x42080c00 0x00008110
++	$::_CHIPNAME.axi mww 0x440A0104 1
++	$::_CHIPNAME.axi mww 0x42080c00 0x00008710
++	return 1
++}
++
++$_CHIPNAME.m33 configure -event reset-assert        { }
++
++$_CHIPNAME.ap0 configure -event reset-assert-post   { adapter assert srst }
++
++$_CHIPNAME.ap0 configure -event reset-deassert-pre  {
++	adapter deassert srst deassert trst
++	catch {dap init}
++	catch {$::_CHIPNAME.dap apid 0}
++	$::_CHIPNAME.ap0 arp_examine
++	if { $::EN_CA35 } { $::_CHIPNAME.ap1 arp_examine; $::_CHIPNAME.a35 arp_examine }
++}
++
++$_CHIPNAME.axi configure -event reset-deassert-post {
++	set is_dev_boot [_enable_dbgmcu_on_devboot]
++	if {!$is_dev_boot && $::EN_CA35 } { _handshake_with_wrapper $halt}
++	if { $::EN_CA35 && $halt} {$::_CHIPNAME.a35 arp_halt}
++	_enable_debug
++	if { $::EN_CM33 } { $::_CHIPNAME.ap3 arp_examine; $::_CHIPNAME.m33 arp_examine; if {$halt} {$::_CHIPNAME.ap3 arp_halt; $::_CHIPNAME.m33 arp_halt} }
++}
++
++$_CHIPNAME.axi configure -event examine-end         {
++	set is_dev_boot [_enable_dbgmcu_on_devboot]
++	if {$is_dev_boot} {echo "Dev boot detected"}
++	_enable_debug
++	if { $::EN_CA35 } { $::_CHIPNAME.ap1 arp_examine; $::_CHIPNAME.a35 arp_examine }
++	if { $::EN_CM33 } { $::_CHIPNAME.ap3 arp_examine; $::_CHIPNAME.m33 arp_examine }
++}
+diff --git a/tcl/target/stm32mp23x.cfg b/tcl/target/stm32mp23x.cfg
+new file mode 100644
+index 000000000..9cde05b63
+--- /dev/null
++++ b/tcl/target/stm32mp23x.cfg
+@@ -0,0 +1,179 @@
++# SPDX-License-Identifier: GPL-2.0-or-later
++
++# STMicroelectronics STM32MP24x
++# STM32MP23x devices support both JTAG and SWD transports.
++
++# HLA does not support multi-cores nor custom CSW nor AP other than 0
++if { [using_hla] } {
++	echo "ERROR: HLA transport cannot work with this target."
++	shutdown
++}
++
++source [find target/swj-dp.tcl]
++source [find mem_helper.tcl]
++
++if { [info exists CHIPNAME] } {
++	set _CHIPNAME $CHIPNAME
++} else {
++	set _CHIPNAME stm32mp23x
++}
++
++# Set to 0 to prevent CPU examine. Default examine them
++if { ! [info exists EN_CA35_0] } { set EN_CA35_0 1 }
++if { ! [info exists EN_CA35_1] } { set EN_CA35_1 1 }
++if { ! [info exists EN_CM33] }   { set EN_CM33   1 }
++if { ! [info exists EN_CM0P] }   { set EN_CM0P   1 }
++
++set _ENDIAN little
++
++# jtag scan chain
++if { [info exists CPUTAPID] } {
++	set _CPUTAPID $CPUTAPID
++} else {
++	if { [using_jtag] } {
++		set _CPUTAPID 0x6ba00477
++	} {
++		set _CPUTAPID 0x6ba02477
++	}
++}
++
++# Chip Level TAP Controller, only in jtag mode
++if { [info exists CLCTAPID] } {
++	set _CLCTAPID $CLCTAPID
++} else {
++	set _CLCTAPID 0x16505041
++}
++
++swj_newdap $_CHIPNAME tap -expected-id $_CPUTAPID -irlen 4 -ircapture 0x01 -irmask 0x0f
++if { [using_jtag] } {
++	swj_newdap $_CHIPNAME.clc tap -expected-id $_CLCTAPID -irlen 5
++}
++
++dap create $_CHIPNAME.dap -chain-position $_CHIPNAME.tap
++
++# define AXI & APB Memory Access Ports
++# NOTE: do not change the order of target create
++target create $_CHIPNAME.ap0 mem_ap -dap $_CHIPNAME.dap -ap-num 0
++target create $_CHIPNAME.axi mem_ap -dap $_CHIPNAME.dap -ap-num 4
++target create $_CHIPNAME.ap8 mem_ap -dap $_CHIPNAME.dap -ap-num 8 -defer-examine
++
++# define the first Cortex-A35
++cti create $_CHIPNAME.cti.a35_0 -dap $_CHIPNAME.dap -ap-num 0 -baseaddr 0x80220000
++target create $_CHIPNAME.a35_0 aarch64 -dap $_CHIPNAME.dap -dbgbase 0x80210000 -ap-num 0 -cti $_CHIPNAME.cti.a35_0 -defer-examine
++
++# define the second Cortex-A35
++cti create $_CHIPNAME.cti.a35_1 -dap $_CHIPNAME.dap -ap-num 0 -baseaddr 0x80320000
++target create $_CHIPNAME.a35_1 aarch64 -dap $_CHIPNAME.dap -dbgbase 0x80310000 -ap-num 0 -cti $_CHIPNAME.cti.a35_1 -defer-examine
++
++# define the Cortex-M33
++target create $_CHIPNAME.m33 cortex_m -dap $_CHIPNAME.dap -ap-num 8 -defer-examine
++cti create $_CHIPNAME.cti.m33 -dap $_CHIPNAME.dap -ap-num 8 -baseaddr 0xe0042000
++
++# define the system CTIs
++cti create $_CHIPNAME.cti.sys0 -dap $_CHIPNAME.dap -ap-num 0 -baseaddr 0x80090000
++cti create $_CHIPNAME.cti.sys1 -dap $_CHIPNAME.dap -ap-num 0 -baseaddr 0x800a0000
++
++targets $_CHIPNAME.a35_0
++
++target smp $_CHIPNAME.a35_0 $_CHIPNAME.a35_1
++
++reset_config srst_gates_jtag srst_pulls_trst
++
++adapter speed 5000
++adapter srst pulse_width 200
++# wait 1 seconds for bootrom
++adapter srst delay 1000
++
++# set CSW for AXI
++$_CHIPNAME.dap apsel 4
++$_CHIPNAME.dap apcsw 0x12800000
++
++# mmw with target selection
++proc target_mmw {target reg setbits clearbits} {
++	set val [eval $target read_memory $reg 32 1]
++	set val [expr {($val & ~$clearbits) | $setbits}]
++	eval $target mww $reg $val
++}
++
++lappend _telnet_autocomplete_skip _enable_debug
++# Uses AP0 and AXI
++proc _enable_debug {} {
++	# set debug enable bits in DBGMCU_CR to get ap8/cm33 visible
++	$::_CHIPNAME.ap0 mww 0x80010004 0x17
++
++	# Freeze watchdogs on CPU halt
++	$::_CHIPNAME.axi mww 0x4a010008 0x00000000
++	$::_CHIPNAME.axi mww 0x4a01003c 0x00000026
++	$::_CHIPNAME.axi mww 0x4a010040 0x00000038
++	$::_CHIPNAME.axi mww 0x4a010044 0x00000400
++	$::_CHIPNAME.axi mww 0x4a010048 0x00000400
++	$::_CHIPNAME.axi mww 0x4a01004c 0x00000600
++}
++
++lappend _telnet_autocomplete_skip _handshake_with_wrapper
++# Uses AP0
++proc _handshake_with_wrapper { halt } {
++	# Check for new handshake on DBGMCU_CR, otherwise switch to legacy one
++
++	# Wrapper inits 0x04, OpenOCD sets 0x07, wrapper replies 0x01
++	set dbgmcu_cr [eval $::_CHIPNAME.ap0 read_memory 0x80010004 32 1]
++	if {[expr {($dbgmcu_cr & 0x07) == 0x04}]} {
++		if { $halt } {
++			$::_CHIPNAME.ap0 mww 0x80010004 [expr {$dbgmcu_cr | 0x03}]
++		} else {
++			$::_CHIPNAME.ap0 mww 0x80010004 [expr {$dbgmcu_cr | 0x02}]
++		}
++		set dbgmcu_cr [eval $::_CHIPNAME.ap0 read_memory 0x80010004 32 1]
++		if {[expr {($dbgmcu_cr & 0x07) != 0x01}]} {
++			echo "\nWARNING: FSBL wrapper not detected. Board in dev boot mode?\n"
++		}
++		return
++	}
++
++	# Skip legacy, as it requires CA35_0
++	if { ! $::EN_CA35_0 } { return }
++
++	echo "INFO: Check for legacy wrapper"
++
++	# set few bits in CPU0 DBG_CLAIM to verify write permission
++	# FSBL wrapper will clear CPU0 DBG_CLAIM[0]
++	# toggle CPU0 DBG_CLAIM[0]
++	$::_CHIPNAME.ap0 mww 0x80210fa0 0x0b
++	set claim [$::_CHIPNAME.ap0 read_memory 0x80210fa4 32 1]
++	if {[expr {$claim & 0xfe}] != 0x0a} {
++		error "ERROR: cannot write in DBG_CLAIM. Missing FSBL wrapper?"
++	}
++	if {[expr {$claim & 1}]} {
++		echo "\nWARNING: FSBL wrapper not detected. Board in dev boot mode?\n"
++	}
++	$::_CHIPNAME.ap0 mww 0x80210fa4 0x0b
++}
++
++$_CHIPNAME.m33 configure -event reset-assert        { }
++
++$_CHIPNAME.ap0 configure -event reset-assert-post   { adapter assert srst }
++
++$_CHIPNAME.ap0 configure -event reset-deassert-pre  {
++	adapter deassert srst deassert trst
++	catch {dap init}
++	catch {$::_CHIPNAME.dap apid 0}
++	$::_CHIPNAME.ap0 arp_examine
++	if { $::EN_CA35_0 } { $::_CHIPNAME.a35_0 arp_examine }
++	if { $::EN_CA35_1 } { $::_CHIPNAME.a35_1 arp_examine }
++}
++
++$_CHIPNAME.ap0 configure -event reset-deassert-post { $::_CHIPNAME.ap0 arp_examine; _handshake_with_wrapper $halt }
++$_CHIPNAME.axi configure -event reset-deassert-post {
++	$::_CHIPNAME.axi arp_examine
++	_enable_debug
++	if { $::EN_CA35_0 } { $::_CHIPNAME.a35_0 arp_examine;  if {$halt} {$::_CHIPNAME.a35_0 arp_halt} }
++	if { $::EN_CA35_1 } { $::_CHIPNAME.a35_1 arp_examine;  if {$halt} {$::_CHIPNAME.a35_1 arp_halt} }
++	if { $::EN_CM33 }   { $::_CHIPNAME.ap8 arp_examine; $::_CHIPNAME.m33 arp_examine; if {$halt} {$::_CHIPNAME.m33 arp_halt} }
++}
++
++$_CHIPNAME.axi configure -event examine-end         {
++	_enable_debug
++	if { $::EN_CA35_0 } { $::_CHIPNAME.a35_0 arp_examine }
++	if { $::EN_CA35_1 } { $::_CHIPNAME.a35_1 arp_examine }
++	if { $::EN_CM33 }   { $::_CHIPNAME.ap8 arp_examine; $::_CHIPNAME.m33 arp_examine }
++}
+diff --git a/tcl/target/stm32mp25x.cfg b/tcl/target/stm32mp25x.cfg
+new file mode 100644
+index 000000000..b5c882950
+--- /dev/null
++++ b/tcl/target/stm32mp25x.cfg
+@@ -0,0 +1,191 @@
++# SPDX-License-Identifier: GPL-2.0-or-later
++
++# STMicroelectronics STM32MP25x
++# STM32MP25x devices support both JTAG and SWD transports.
++
++# HLA does not support multi-cores nor custom CSW nor AP other than 0
++if { [using_hla] } {
++	echo "ERROR: HLA transport cannot work with this target."
++	shutdown
++}
++
++source [find target/swj-dp.tcl]
++source [find mem_helper.tcl]
++
++if { [info exists CHIPNAME] } {
++	set _CHIPNAME $CHIPNAME
++} else {
++	set _CHIPNAME stm32mp25x
++}
++
++# Set to 0 to prevent CPU examine. Default examine them
++if { ! [info exists EN_CA35_0] } { set EN_CA35_0 1 }
++if { ! [info exists EN_CA35_1] } { set EN_CA35_1 1 }
++if { ! [info exists EN_CM33] }   { set EN_CM33   1 }
++if { ! [info exists EN_CM0P] }   { set EN_CM0P   1 }
++
++set _ENDIAN little
++
++# jtag scan chain
++if { [info exists CPUTAPID] } {
++	set _CPUTAPID $CPUTAPID
++} else {
++	if { [using_jtag] } {
++		set _CPUTAPID 0x6ba00477
++	} {
++		set _CPUTAPID 0x6ba02477
++	}
++}
++
++# Chip Level TAP Controller, only in jtag mode
++if { [info exists CLCTAPID] } {
++	set _CLCTAPID $CLCTAPID
++} else {
++	set _CLCTAPID 0x16505041
++}
++
++swj_newdap $_CHIPNAME tap -expected-id $_CPUTAPID -irlen 4 -ircapture 0x01 -irmask 0x0f
++if { [using_jtag] } {
++	swj_newdap $_CHIPNAME.clc tap -expected-id $_CLCTAPID -irlen 5
++}
++
++dap create $_CHIPNAME.dap -chain-position $_CHIPNAME.tap
++
++# define AXI & APB Memory Access Ports
++# NOTE: do not change the order of target create
++target create $_CHIPNAME.ap0 mem_ap -dap $_CHIPNAME.dap -ap-num 0
++target create $_CHIPNAME.axi mem_ap -dap $_CHIPNAME.dap -ap-num 4
++target create $_CHIPNAME.ap2 mem_ap -dap $_CHIPNAME.dap -ap-num 2 -defer-examine
++target create $_CHIPNAME.ap8 mem_ap -dap $_CHIPNAME.dap -ap-num 8 -defer-examine
++
++# define the first Cortex-A35
++cti create $_CHIPNAME.cti.a35_0 -dap $_CHIPNAME.dap -ap-num 0 -baseaddr 0x80220000
++target create $_CHIPNAME.a35_0 aarch64 -dap $_CHIPNAME.dap -dbgbase 0x80210000 -ap-num 0 -cti $_CHIPNAME.cti.a35_0 -defer-examine
++
++# define the second Cortex-A35
++cti create $_CHIPNAME.cti.a35_1 -dap $_CHIPNAME.dap -ap-num 0 -baseaddr 0x80320000
++target create $_CHIPNAME.a35_1 aarch64 -dap $_CHIPNAME.dap -dbgbase 0x80310000 -ap-num 0 -cti $_CHIPNAME.cti.a35_1 -defer-examine
++
++# define the Cortex-M33
++target create $_CHIPNAME.m33 cortex_m -dap $_CHIPNAME.dap -ap-num 8 -defer-examine
++cti create $_CHIPNAME.cti.m33 -dap $_CHIPNAME.dap -ap-num 8 -baseaddr 0xe0042000
++
++# define the Cortex-M0+
++target create $_CHIPNAME.m0p cortex_m -dap $_CHIPNAME.dap -ap-num 2 -defer-examine
++cti create $_CHIPNAME.cti.m0p -dap $_CHIPNAME.dap -ap-num 2 -baseaddr 0xf0000000
++
++# define the system CTIs
++cti create $_CHIPNAME.cti.sys0 -dap $_CHIPNAME.dap -ap-num 0 -baseaddr 0x80090000
++cti create $_CHIPNAME.cti.sys1 -dap $_CHIPNAME.dap -ap-num 0 -baseaddr 0x800a0000
++
++targets $_CHIPNAME.a35_0
++
++target smp $_CHIPNAME.a35_0 $_CHIPNAME.a35_1
++
++reset_config srst_gates_jtag srst_pulls_trst
++
++adapter speed 5000
++adapter srst pulse_width 200
++# wait 1 seconds for bootrom
++adapter srst delay 1000
++
++# set CSW for AXI
++$_CHIPNAME.dap apsel 4
++$_CHIPNAME.dap apcsw 0x12800000
++
++# mmw with target selection
++proc target_mmw {target reg setbits clearbits} {
++	set val [eval $target read_memory $reg 32 1]
++	set val [expr {($val & ~$clearbits) | $setbits}]
++	eval $target mww $reg $val
++}
++
++lappend _telnet_autocomplete_skip _enable_debug
++# Uses AP0 and AXI
++proc _enable_debug {} {
++	# set debug enable bits in DBGMCU_CR to get ap2/cm0+ and ap8/cm33 visible
++	# set DBG_SWD_SEL_N bit in DBGMCU_CR to get ap2/cm0+ on main debug interface
++	$::_CHIPNAME.ap0 mww 0x80010004 0x17
++
++	# set bits C3LPEN and C3EN in RCC_C3CFGR to enable AP2 and CM0+ clock
++	target_mmw $::_CHIPNAME.axi 0x54200490 6 0
++
++	# Freeze watchdogs on CPU halt
++	$::_CHIPNAME.axi mww 0x4a010008 0x00000000
++	$::_CHIPNAME.axi mww 0x4a01003c 0x00000026
++	$::_CHIPNAME.axi mww 0x4a010040 0x00000038
++	$::_CHIPNAME.axi mww 0x4a010044 0x00000400
++	$::_CHIPNAME.axi mww 0x4a010048 0x00000400
++	$::_CHIPNAME.axi mww 0x4a01004c 0x00000600
++}
++
++lappend _telnet_autocomplete_skip _handshake_with_wrapper
++# Uses AP0
++proc _handshake_with_wrapper { halt } {
++	# Check for new handshake on DBGMCU_CR, otherwise switch to legacy one
++
++	# Wrapper inits 0x04, OpenOCD sets 0x07, wrapper replies 0x01
++	set dbgmcu_cr [eval $::_CHIPNAME.ap0 read_memory 0x80010004 32 1]
++	if {[expr {($dbgmcu_cr & 0x07) == 0x04}]} {
++		if { $halt } {
++			$::_CHIPNAME.ap0 mww 0x80010004 [expr {$dbgmcu_cr | 0x03}]
++		} else {
++			$::_CHIPNAME.ap0 mww 0x80010004 [expr {$dbgmcu_cr | 0x02}]
++		}
++		set dbgmcu_cr [eval $::_CHIPNAME.ap0 read_memory 0x80010004 32 1]
++		if {[expr {($dbgmcu_cr & 0x07) != 0x01}]} {
++			echo "\nWARNING: FSBL wrapper not detected. Board in dev boot mode?\n"
++		}
++		return
++	}
++
++	# Skip legacy, as it requires CA35_0
++	if { ! $::EN_CA35_0 } { return }
++
++	echo "INFO: Check for legacy wrapper"
++
++	# set few bits in CPU0 DBG_CLAIM to verify write permission
++	# FSBL wrapper will clear CPU0 DBG_CLAIM[0]
++	# toggle CPU0 DBG_CLAIM[0]
++	$::_CHIPNAME.ap0 mww 0x80210fa0 0x0b
++	set claim [$::_CHIPNAME.ap0 read_memory 0x80210fa4 32 1]
++	if {[expr {$claim & 0xfe}] != 0x0a} {
++		error "ERROR: cannot write in DBG_CLAIM. Missing FSBL wrapper?"
++	}
++	if {[expr {$claim & 1}]} {
++		echo "\nWARNING: FSBL wrapper not detected. Board in dev boot mode?\n"
++	}
++	$::_CHIPNAME.ap0 mww 0x80210fa4 0x0b
++}
++
++$_CHIPNAME.m33 configure -event reset-assert        { }
++$_CHIPNAME.m0p configure -event reset-assert        { }
++
++$_CHIPNAME.ap0 configure -event reset-assert-post   { adapter assert srst }
++
++$_CHIPNAME.ap0 configure -event reset-deassert-pre  {
++	adapter deassert srst deassert trst
++	catch {dap init}
++	catch {$::_CHIPNAME.dap apid 0}
++	$::_CHIPNAME.ap0 arp_examine
++	if { $::EN_CA35_0 } { $::_CHIPNAME.a35_0 arp_examine }
++	if { $::EN_CA35_1 } { $::_CHIPNAME.a35_1 arp_examine }
++}
++
++$_CHIPNAME.ap0 configure -event reset-deassert-post { $::_CHIPNAME.ap0 arp_examine; _handshake_with_wrapper $halt }
++$_CHIPNAME.axi configure -event reset-deassert-post {
++	$::_CHIPNAME.axi arp_examine
++	_enable_debug
++	if { $::EN_CA35_0 } { $::_CHIPNAME.a35_0 arp_examine;  if {$halt} {$::_CHIPNAME.a35_0 arp_halt} }
++	if { $::EN_CA35_1 } { $::_CHIPNAME.a35_1 arp_examine;  if {$halt} {$::_CHIPNAME.a35_1 arp_halt} }
++	if { $::EN_CM0P }   { $::_CHIPNAME.ap2 arp_examine; $::_CHIPNAME.m0p arp_examine }
++	if { $::EN_CM33 }   { $::_CHIPNAME.ap8 arp_examine; $::_CHIPNAME.m33 arp_examine; if {$halt} {$::_CHIPNAME.m33 arp_halt} }
++}
++
++$_CHIPNAME.axi configure -event examine-end         {
++	_enable_debug
++	if { $::EN_CA35_0 } { $::_CHIPNAME.a35_0 arp_examine }
++	if { $::EN_CA35_1 } { $::_CHIPNAME.a35_1 arp_examine }
++	if { $::EN_CM33 }   { $::_CHIPNAME.ap8 arp_examine; $::_CHIPNAME.m33 arp_examine }
++	if { $::EN_CM0P }   { $::_CHIPNAME.ap2 arp_examine; $::_CHIPNAME.m0p arp_examine }
++}
+-- 
+2.34.1
+

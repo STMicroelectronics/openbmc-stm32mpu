@@ -1,14 +1,14 @@
 #!/bin/sh -
 
 # List of Splash screen available
-SPLASH_BG_LANDSCAPE_INDUS_480_272="ST30739_splash-480x272.png"
-SPLASH_BG_LANDSCAPE_INDUS_480_800="ST30739_splash-800x480.png"
-SPLASH_BG_LANDSCAPE_INDUS_800_480="ST30739_splash-800x480.png"
-SPLASH_BG_LANDSCAPE_INDUS_1280_720="ST30739_splash-1280x720.png"
+SPLASH_BG_LANDSCAPE_INDUS_480_272="/usr/share/splashscreen/ST30739_splash-480x272.png"
+SPLASH_BG_LANDSCAPE_INDUS_480_800="/usr/share/splashscreen/ST30739_splash-800x480.png"
+SPLASH_BG_LANDSCAPE_INDUS_800_480="/usr/share/splashscreen/ST30739_splash-800x480.png"
+SPLASH_BG_LANDSCAPE_INDUS_1280_720="/usr/share/splashscreen/ST30739_splash-1280x720.png"
 
-SPLASH_BG_LANDSCAPE_TSN_1024_600="ST30739_splash-1024x600.png"
-SPLASH_BG_LANDSCAPE_TSN_1920_1080="ST30739_splash-1920x1080.png"
-SPLASH_BG_PORTRAIT_TSN_720_1280="ST30739_splash-720x1280.png"
+SPLASH_BG_LANDSCAPE_TSN_1024_600="/usr/share/splashscreen/ST30739_splash-1024x600.png"
+SPLASH_BG_LANDSCAPE_TSN_1920_1080="/usr/share/splashscreen/ST30739_splash-1920x1080.png"
+SPLASH_BG_PORTRAIT_TSN_720_1280="/usr/share/splashscreen/ST30739_splash-720x1280.png"
 
 DEFAULT_SPLASH=$SPLASH_BG_LANDSCAPE_INDUS_480_800
 OPT=""
@@ -36,28 +36,40 @@ if [ -d /proc/device-tree/ ]; then
 	if  $(cat /proc/device-tree/compatible | grep -q "stm32mp25")
 	then
 		DEFAULT_SPLASH=$SPLASH_BG_LANDSCAPE_TSN_1024_600
-		hdmi_status=$(cat /sys/class/drm/card0-HDMI-A-1/status)
+		hdmi_status=$(modetest | grep HDMI | awk -F ' ' '{print $3}')
+		lvds_status=$(cat /proc/device-tree/panel-lvds/status)
 		echo "[DEBUG]: compatible mp25"
+		echo "[DEBUG]: hdmi status: $hdmi_status"
+		echo "[DEBUG]: lvds status: $lvds_status"
 
 		OPT="--force-no-hdmi"
-		if [ -e  /proc/device-tree/panel-lvds ]; then
+		if [ -e  /proc/device-tree/panel-lvds ] && [ "$lvds_status" = "okay" ]; then
 			panel_lvds=$(cat /proc/device-tree/panel-lvds/compatible)
 			if $(cat /proc/device-tree/panel-lvds/compatible | grep -q "etml0700z8dh" )
 			then
 				DEFAULT_SPLASH=$SPLASH_BG_LANDSCAPE_TSN_1920_1080
 			else
 				DEFAULT_SPLASH=$SPLASH_BG_LANDSCAPE_TSN_1024_600
+				if [ -d /usr/local/splashscreen/animated ] ; then
+					DEFAULT_SPLASH=/usr/local/splashscreen/animated/splashscreen-animated_%05d.png
+					OPT="$OPT --framerate 20 -n 50  -l"
+				fi
 			fi
 		fi
 		if [ "$hdmi_status" = "connected" ]; then
-			lvds_status=$(cat /proc/device-tree/panel-lvds/status)
 			if [ "$lvds_status" = "disabled" ]; then
 				OPT=" --maxsize=1920 --force-hdmi"
 				DEFAULT_SPLASH=$SPLASH_BG_LANDSCAPE_TSN_1920_1080
 				echo "[DEBUG]: compatible mp25 with hdmi connected"
 			fi
 		fi
+		if [ "$hdmi_status" = "disconnected" ] || [ "$hdmi_status" = "unknown" ]; then
+			if [ "$lvds_status" = "disabled" ]; then
+				exit 1;
+			fi
+		fi
+
 	fi
 fi
-echo "/usr/bin/psplash-drm -w $OPT --background 03234b --filename=/usr/share/splashscreen/$DEFAULT_SPLASH"
-/usr/bin/psplash-drm -w $OPT --background 03234b --filename=/usr/share/splashscreen/$DEFAULT_SPLASH
+echo "/usr/bin/psplash-drm -w $OPT --background 03234b --filename=$DEFAULT_SPLASH"
+/usr/bin/psplash-drm -w $OPT --background 03234b --filename=$DEFAULT_SPLASH

@@ -1,0 +1,2 @@
+Pictures based on ST resources: ST30739_MPU-visuals-anime
+extration: fmpeg -i ST30739_MPU-visuals-anime.mp4 splashscreen-animated_%05d.png

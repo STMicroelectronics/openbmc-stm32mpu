@@ -14,3 +14,9 @@ do_install:append() {
     install -d ${D}${sysconfdir}/sudoers.d
     install -m 0644 ${WORKDIR}/weston-apt ${D}${sysconfdir}/sudoers.d
 }
+
+do_install:append:class-nativesdk() {
+    # remove unnecessary sudo binaries on sdk
+    rm ${D}${bindir}/sudo ${D}${bindir}/sudoedit
+}
+ALLOW_EMPTY:${PN}-sudo = "1"

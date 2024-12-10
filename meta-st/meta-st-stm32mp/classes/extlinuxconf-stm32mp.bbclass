@@ -152,10 +152,10 @@ def create_extlinux_file(cfile, labels, data):
                     # Set specific kernel configuration if 'fit' feature is enabled
                     kernel_image = kernel_image + '#conf-' + label + '.dtb'
                     cfgfile.write('LABEL %s\n\tKERNEL %s\n' % (menu_description, kernel_image))
-                elif fdt:
+                elif fdt and len(fdt) > 0:
                     cfgfile.write('LABEL %s\n\tKERNEL %s\n\tFDT %s\n' %
                                  (menu_description, kernel_image, fdt))
-                elif fdtdir:
+                elif fdtdir and len(fdtdir) > 0:
                     cfgfile.write('LABEL %s\n\tKERNEL %s\n\tFDTDIR %s\n' %
                                  (menu_description, kernel_image, fdtdir))
                 else:

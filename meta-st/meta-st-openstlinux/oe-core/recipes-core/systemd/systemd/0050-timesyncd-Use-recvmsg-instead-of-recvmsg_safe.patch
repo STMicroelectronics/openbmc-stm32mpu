@@ -15,6 +15,8 @@ use recvmsg() and the issue is gone.
 
 Signed-off-by: Lei YU <yulei.sh@bytedance.com>
 ---
+Upstream-Status: Inappropriate
+
  src/timesync/timesyncd-manager.c | 7 ++++---
  1 file changed, 4 insertions(+), 3 deletions(-)
 

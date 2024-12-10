@@ -1,6 +1,6 @@
 #!/bin/sh
 
-COMPATIBLE_BOARD=$(cat /proc/device-tree/compatible | sed "s|st,|,|g" | cut -d ',' -f2)
+COMPATIBLE_BOARD=$(tr -d '\0' < /proc/device-tree/compatible | sed "s|st,|,|g" | cut -d ',' -f2 | head -n 1 |tr '\n' ' ' | sed "s/ //g")
 
 case $COMPATIBLE_BOARD in
 stm32mp151a-dk2*)

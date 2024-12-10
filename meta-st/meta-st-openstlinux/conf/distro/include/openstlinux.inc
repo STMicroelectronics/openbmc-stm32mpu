@@ -67,6 +67,7 @@ DISTRO_FEATURES:append = " kde "
 # add support of systemd
 DISTRO_FEATURES:append = " systemd "
 DISTRO_FEATURES:append = " polkit "
+DISTRO_FEATURES:append = " usrmerge "
 
 # add support of efi
 DISTRO_FEATURES:append:aarch64 = " efi "
@@ -93,9 +94,6 @@ VIRTUAL-RUNTIME_initscripts = "systemd-compat-units"
 # =========================================================================
 # Preferred version
 # =========================================================================
-
-# v4l-utils
-#PREFERRED_VERSION_v4l-utils ?= "1.6.2"
 
 # =========================================================================
 # IMAGE addons

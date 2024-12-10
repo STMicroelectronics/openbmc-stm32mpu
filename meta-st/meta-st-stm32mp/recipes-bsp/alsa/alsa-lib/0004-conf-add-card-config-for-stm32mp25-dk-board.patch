@@ -7,6 +7,8 @@ Add ALSA card configuration file for STM32MP25 DK boards.
 
 Signed-off-by: Olivier Moysan <olivier.moysan@foss.st.com>
 ---
+Upstream-Status: Pending [specific to ST boards]
+
  src/conf/cards/Makefile.am      |  3 ++-
  src/conf/cards/STM32MP25DK.conf | 16 ++++++++++++++++
  src/conf/cards/aliases.conf     |  1 +

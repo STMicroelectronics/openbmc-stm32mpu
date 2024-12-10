@@ -5,10 +5,10 @@ OPENSTLINUX_RELEASE ??= "snapshot"
 
 DISTRO = "openstlinux"
 DISTRO_NAME = "ST OpenSTLinux (A Yocto Project Based Distro)"
-DISTRO_VERSION = "4.2.4-${@bb.utils.contains('OPENSTLINUX_RELEASE', 'snapshot', 'snapshot-${DATE}', '${OPENSTLINUX_RELEASE}', d)}"
+DISTRO_VERSION = "5.0.3-${@bb.utils.contains('OPENSTLINUX_RELEASE', 'snapshot', 'snapshot-${DATE}', '${OPENSTLINUX_RELEASE}', d)}"
 # Don't include the DATE variable in the sstate package signatures
 DISTRO_VERSION[vardepsexclude] = "DATE"
-DISTRO_CODENAME = "mickledore"
+DISTRO_CODENAME = "scarthgap"
 
 # Warning: SDK_VENDOR does not contains a valid OS/ARCH name like : linux, arm
 SDK_VENDOR = "-ostl_sdk"

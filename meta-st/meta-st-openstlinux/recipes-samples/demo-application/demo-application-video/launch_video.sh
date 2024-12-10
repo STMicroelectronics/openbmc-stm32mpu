@@ -18,28 +18,28 @@ function pty_exec() {
 gpu_presence=0
 if [ -f /etc/default/weston ] && $(grep "^OPTARGS" /etc/default/weston | grep -q "use-pixman" ) ;
 then
-	echo "Without GPU"
-	ADDONS="videoconvert ! video/x-raw,format=BGRx ! queue !"
+        echo "Without GPU"
+        ADDONS="videoconvert ! video/x-raw,format=BGRx ! queue !"
 else
-	echo "With GPU"
-	gpu_presence=1
-	ADDONS=""
+        echo "With GPU"
+        gpu_presence=1
+        ADDONS=""
 fi
 
 # Detect size of screen
-SCREEN_WIDTH=$(wayland-info | grep logical_width | sed -r "s/logical_width: ([0-9]+),.*/\1/")
-SCREEN_HEIGHT=$(wayland-info | grep logical_width | sed -r "s/.*logical_height: ([0-9]+).*/\1/")
+SCREEN_WIDTH=$(wayland-info -i zxdg_output_manager_v1 | grep -A2 "name" | tr '\n' ' ' | sed "s|--|#|g" |tr '#' '\n' | grep -v pipewire | tr '\t' '\n' | grep logical_width | sed -r "s/logical_width: ([0-9]+),.*/\1/")
+SCREEN_HEIGHT=$(wayland-info -i zxdg_output_manager_v1 | grep -A2 "name" | tr '\n' ' ' | sed "s|--|#|g" |tr '#' '\n' | grep -v pipewire | tr '\t' '\n' | grep logical_width | sed -r "s/.*logical_height: ([0-9]+).*/\1/")
 
 if [ $gpu_presence -eq 0 ] || [ $SCREEN_HEIGHT -lt 480 ];
 then
-	VIDEO_FILE=/usr/local/demo/media/ST19619_ST_Company_Video_16_9_EN_272p.webm
+        VIDEO_FILE=/usr/local/demo/media/ST19619_ST_Company_Video_16_9_EN_272p.webm
 else
-	VIDEO_FILE=/usr/local/demo/media/ST2297_visionv3.webm
+        VIDEO_FILE=/usr/local/demo/media/ST2297_visionv3.webm
 fi
 
-# Audio                                                                                                                 
-AUDIOSINK=""                                                                                                            
-COMPATIBLE_BOARD=$(cat /proc/device-tree/compatible | sed "s|st,|,|g" | cut -d ',' -f2)
+# Audio
+AUDIOSINK=""
+COMPATIBLE_BOARD=$(tr -d '\0' < /proc/device-tree/compatible | sed "s|st,|,|g" | cut -d ',' -f2)
 case $COMPATIBLE_BOARD in
 stm32mp257f-dk*|stm32mp257f-ev1*)
         hdmi_status=$(cat /sys/class/drm/card0/*HDMI*/status)
@@ -47,7 +47,7 @@ stm32mp257f-dk*|stm32mp257f-ev1*)
                 AUDIOSINK="audio-sink='fakesink '"
         fi
         ;;
-        *)                                                                                       
+        *)
         ;;
 esac
 

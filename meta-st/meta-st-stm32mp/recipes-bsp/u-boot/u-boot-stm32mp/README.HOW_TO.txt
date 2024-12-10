@@ -31,11 +31,15 @@ README_HOW_TO.txt in ../external-dt.
 2. Initialize cross-compilation via SDK
 ---------------------------------------
 * Source SDK environment:
-    $ source <path to SDK>/environment-setup-cortexa7t2hf-neon-vfpv4-ostl-linux-gnueabi
+    $ source <path to SDK>/environment-setup
 
-* To verify if you cross-compilation environment are put in place:
-    $ set | grep CROSS
-    CROSS_COMPILE=arm-ostl-linux-gnueabi-
+* To verify that your cross-compilation environment is set-up correctly:
+    $ set | grep CROSS_COMPILE
+
+  If the variable CROSS_COMPILE has a value:
+   - arm-ostl-linux-gnueabi- for 32 bits architecture (for example STM32MP1)
+   - aarch64-ostl-linux- for 64 bits architecture (for example STM32MP2)
+  Then everything is set-up correctly
 
 Warning: the environment are valid only on the shell session where you have
          sourced the sdk environment.
@@ -149,7 +153,7 @@ and add the following parameter to make command:
 
 
     then u-boot.dtb and u-boot-nodtb.bin can be added in the an existing FIP file with:
-      $ fiptool update --verbose \
+      $ fiptool --verbose update \
       --nt-fw u-boot-nodtb.bin \
       --hw-config u-boot.dtb \
       <FIP.bin>
@@ -157,6 +161,17 @@ and add the following parameter to make command:
     or used to create a FIP, see command in TF-A readme.
 
     warning: 'fiptool update' is not possible for signed FIP
+
+* Configure on a dedicated build directory
+    Here for example, build directory is located at the same level of U-Boot
+    source code
+    $ cd <directory to U-Boot source code>
+    $ export OUTPUT_BUILD_DIR=$PWD/../build
+    $ mkdir -p ${OUTPUT_BUILD_DIR}
+
+    Then to compile, add O="${OUTPUT_BUILD_DIR}" to the command line
+    $ make O="${OUTPUT_BUILD_DIR}" stm32mp25_defconfig
+    $ make O="${OUTPUT_BUILD_DIR}" DEVICE_TREE=stm32mp257f-ev1 all
 
 5.2 Compilation for several targets: use Makefile.sdk (with FIP)
 ----------------------------------------------------------------
@@ -174,9 +189,9 @@ To compile U-Boot source code:
     $ make -f $PWD/../Makefile.sdk all
 To compile U-Boot source code for a specific config:
   - Compile default U-Boot configuration but applying specific devicetree(s):
-    $ make -f $PWD/../Makefile.sdk DEVICETREE="<devicetree1> <devicetree2>" all
+    $ make -f $PWD/../Makefile.sdk DEVICE_TREE="<devicetree1> <devicetree2>" all
   - Compile for a specific U-Boot configuration:
-    $ make -f $PWD/../Makefile.sdk UBOOT_CONFIG=default UBOOT_DEFCONFIG=stm32mp15_defconfig UBOOT_BINARY=u-boot.dtb DEVICETREE=stm32mp157f-dk2 all
+    $ make -f $PWD/../Makefile.sdk UBOOT_CONFIG=default UBOOT_DEFCONFIG=stm32mp15_defconfig UBOOT_BINARY=u-boot.dtb DEVICE_TREE=stm32mp157f-dk2 all
 To compile U-Boot source code and overwrite the default FIP artifacts with built artifacts:
     $> rm -rf $FIP_DEPLOYDIR_ROOT/u-boot/*
     $> make -f $PWD/../Makefile.sdk DEPLOYDIR=$FIP_DEPLOYDIR_ROOT/u-boot all
@@ -207,7 +222,7 @@ Then build U-Boot as explained in chapter 5.
 Please use STM32CubeProgrammer and only tick the ssbl-boot and fip partition (more informations on the wiki website http://wiki.st.com/stm32mpu)
 
 ---------------------------
-7. Update Starter Package with U-Boot compilation outputs
+7. Generate new Starter Package with U-Boot compilation outputs
 ---------------------------
 If not already done, extract the artifacts from Starter Package tarball, for example:
     # tar xf en.FLASH-stm32mp*-*.tar.xz

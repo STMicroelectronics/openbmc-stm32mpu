@@ -28,11 +28,16 @@ README_HOW_TO.txt in ../external-dt.
 2. Initialize cross-compilation via SDK
 ---------------------------------------
 Source SDK environment:
-    $ source <path to SDK>/environment-setup-cortexa7t2hf-neon-vfpv4-ostl-linux-gnueabi
+    $ source <path to SDK>/environment-setup
 
-To verify if your cross-compilation environment have put in place:
-    $ set | grep CROSS
-    CROSS_COMPILE=arm-ostl-linux-gnueabi-
+To verify that your cross-compilation environment is set-up correctly:
+    $ set | grep CROSS_COMPILE
+
+  If the variable CROSS_COMPILE has a value:
+   - arm-ostl-linux-gnueabi- for 32 bits architecture (for example STM32MP1)
+   - aarch64-ostl-linux- for 64 bits architecture (for example STM32MP2)
+  Then everything is set-up correctly
+
 
 Warning: the environment are valid only on the shell session where you have
 sourced the sdk environment.
@@ -130,7 +135,7 @@ To compile TF-A source code and overwrite the default FIP artifacts with built a
 Please use STM32CubeProgrammer to update the boot partitions, find more informations on the wiki website https://wiki.st.com/stm32mpu
 
 ---------------------------
-7. Update Starter Package with TF-A compilation outputs
+7. Generate new Starter Package with TF-A compilation outputs
 ---------------------------
 If not already done, extract the artifacts from Starter Package tarball, for example:
     # tar xf en.FLASH-stm32mp*-*.tar.xz

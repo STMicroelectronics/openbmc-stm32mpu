@@ -309,6 +309,9 @@ SDK_INCLUDE_TOOLCHAIN="1"
 # Enable PR server to avoid version-going-backward issue
 PRSERV_HOST = "localhost:0"
 
+# for archiver
+HOSTTOOLS += "xz truncate"
+
 # =========================================================================
 # Configure STM32MP default version to github
 # =========================================================================

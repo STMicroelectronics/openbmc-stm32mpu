@@ -498,7 +498,7 @@ class ApplicationButton():
                 module_imported = import_module_by_name(self.yaml_configuration["Application"]["Python"]["Module"].rstrip())
                 if (module_imported):
                     print_debug(3, "[Python_event start]")
-                    module_imported.create_subdialogwindow(self._parent)
+                    module_imported.create_subdialogwindow(self._parent, log=LOG_LEVEL)
                     print_debug(3, "[Python_event stop]\n")
                     widget.set_name("transparent_bg")
                     self._parent.button_exit.show()
@@ -924,6 +924,8 @@ if __name__ == "__main__":
     # add signal to catch CRTL+C
     import signal
     signal.signal(signal.SIGINT, demo_signal_handler)
+    signal.signal(signal.SIGTERM, demo_signal_handler)
+    signal.signal(signal.SIGQUIT, demo_signal_handler)
 
     if file_is_locked(lock_file_path):
         print("[ERROR] another instance is running exiting now\n")

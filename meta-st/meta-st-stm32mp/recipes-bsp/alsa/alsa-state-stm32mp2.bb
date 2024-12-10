@@ -36,10 +36,10 @@ do_install() {
         do
             cd ${D}${sysconfdir}/
             ln -sf asound-stm32mp25yx-dk.conf asound-stm32mp25$n$p-dk.conf
-            ln -sf asound-stm32mp25yx-dk.conf asound-stm32mp25$n$p-ev1.conf
+            ln -sf asound-stm32mp25yx-ev1.conf asound-stm32mp25$n$p-ev1.conf
             cd ${D}${localstatedir}/lib/alsa
             ln -sf asound-stm32mp25yx-dk.state asound-stm32mp25$n$p-dk.state
-            ln -sf asound-stm32mp25yx-dk.state asound-stm32mp25$n$p-ev1.state
+            ln -sf asound-stm32mp25yx-ev1.state asound-stm32mp25$n$p-ev1.state
         done
     done
 }

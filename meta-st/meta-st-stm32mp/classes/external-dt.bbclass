@@ -15,7 +15,7 @@ EXTDT_DIR_LINUX ??= "linux"
 EXTDT_DIR_CONFIG += "virtual/trusted-firmware-a:${EXTDT_DIR_TF_A}"
 EXTDT_DIR_CONFIG += "virtual/bootloader:${EXTDT_DIR_UBOOT}"
 EXTDT_DIR_CONFIG += "virtual/trusted-firmware-m:${EXTDT_DIR_TF_M}"
-EXTDT_DIR_CONFIG += "virtual/optee-os:${EXTDT_DIR_OPTEE}"
+EXTDT_DIR_CONFIG += "virtual-optee-os:${EXTDT_DIR_OPTEE}"
 EXTDT_DIR_CONFIG += "virtual/kernel:${EXTDT_DIR_LINUX}"
 
 EXTDT_FILE_PATTERNS += ".*\.dts$"

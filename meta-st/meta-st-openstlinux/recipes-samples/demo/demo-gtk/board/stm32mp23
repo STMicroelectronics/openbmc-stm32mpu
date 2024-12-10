@@ -1,0 +1,4 @@
+BOARD:  STM32MP23
+LOGO: pictures/ST20578_Label_OpenSTlinux_V.png
+INFO: <span font='20' color='#FFFFFFFF'><b>STM32MP23x Board</b></span>|<span font='14' color='#FFFFFFFF'>Dual Arm&#174; Cortex&#174;-A35</span>|<span font='14' color='#FFFFFFFF'>+</span>|<span font='14' color='#FFFFFFFF'>Copro Arm&#174; Cortex&#174;-M33</span>
+

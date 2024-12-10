@@ -28,7 +28,7 @@ Name=$WLAN_INTERFACE
 Address=192.168.72.1/24
 DHCPServer=yes
 IPForward=ipv4
-IPMasquerade=yes
+IPMasquerade=ipv4
 
 [DHCP]
 CriticalConnection=true

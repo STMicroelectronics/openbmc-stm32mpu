@@ -17,5 +17,10 @@ do_install:prepend() {
     install -d ${D}${systemd_unitdir}/journald.conf.d/
     echo "[Journal]" > ${D}${systemd_unitdir}/journald.conf.d/01-openstlinux.conf
     echo "Storage=volatile" >> ${D}${systemd_unitdir}/journald.conf.d/01-openstlinux.conf
+
+    # for iptable usage with wifi
+    install -d ${D}${systemd_unitdir}/system.conf.d
+    echo "[Manager]" > ${D}${systemd_unitdir}/system.conf.d/03-openstlinux.conf
+    echo "DefaultEnvironment=\"SYSTEMD_FIREWALL_BACKEND=iptables\"" >> ${D}${systemd_unitdir}/system.conf.d/03-openstlinux.conf
 }
 FILES:${PN} += " ${sysconfdir}/systemd/coredump.conf.d/ "

@@ -12,6 +12,7 @@ SRC_URI = " \
         file://Makefile \
         file://psplash-drm-quit \
         file://pictures \
+        file://pictures-animated \
     "
 
 SRC_URI += " file://psplash-drm-start.service file://psplash-drm-start.sh file://71-dev-dri-card0.rules"
@@ -47,6 +48,12 @@ do_install() {
         install -m 644 ${WORKDIR}/pictures/* ${D}${datadir}/splashscreen/
         install -m 644 ${WORKDIR}/71-dev-dri-card0.rules ${D}${sysconfdir}/udev/rules.d/
 
+        # extra animation
+        install -d ${D}${prefix}/local/splashscreen/animated
+        install -m 644 ${WORKDIR}/pictures-animated/* ${D}${prefix}/local/splashscreen/animated/
     fi
 }
+PACKAGES += "${PN}-extra"
 FILES:${PN} += "${systemd_unitdir}/system ${datadir}"
+FILES:${PN}-extra = "${prefix}/local/splashscreen/"
+

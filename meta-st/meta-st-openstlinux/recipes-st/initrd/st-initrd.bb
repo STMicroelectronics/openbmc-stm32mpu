@@ -20,13 +20,13 @@ do_install() {
     fi
 
     for img in ${INITRD_IMAGE_ALL}; do
-        INITRD_IMAGE_FILE=$(find ${DEPLOY_DIR_IMAGE} -name ${img}*-${MACHINE}.${INITRAMFS_FSTYPES})
+        INITRD_IMAGE_FILE=$(find ${DEPLOY_DIR_IMAGE} -name ${img}*-${MACHINE}.rootfs.${INITRAMFS_FSTYPES})
         if [ -e "${INITRD_IMAGE_FILE}" ]; then
             bbnote "Copying ${img} InitRD file into ./boot/ ..."
             install -d ${D}/boot
             install -m 0644 ${INITRD_IMAGE_FILE} ${D}/boot/${img}
         else
-            bbfatal "Could not find ${img}*-${MACHINE}.${INITRAMFS_FSTYPES} image file in ${DEPLOY_DIR_IMAGE} folder"
+            bbfatal "Could not find ${img}*-${MACHINE}.rootfs.${INITRAMFS_FSTYPES} image file in ${DEPLOY_DIR_IMAGE} folder"
         fi
     done
 }

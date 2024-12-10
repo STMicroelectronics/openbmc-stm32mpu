@@ -52,6 +52,7 @@ RDEPENDS:packagegroup-framework-tools-base-kernel = "\
     memtester       \
     mtd-utils       \
     v4l-utils       \
+    media-ctl       \
     util-linux      \
     util-linux-fdisk\
     pciutils        \

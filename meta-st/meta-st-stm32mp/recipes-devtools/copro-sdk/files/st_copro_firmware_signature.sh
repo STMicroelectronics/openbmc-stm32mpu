@@ -20,9 +20,12 @@ DEFAULT_UC2_RADIX=${UC2_RADIX:-tfm_sign.bin}
 NEED_TO_SIGN=0
 NEED_TO_SECURE=0
 INPUT_NSECURE=""
+OUTPUT_NSECURE=""
+OUTPUT_NSECURE_STRIPPED=0
 OUTPUT_SIGNATURE=""
 INPUT_SECURE=""
 OUTPUT_SECURE=""
+OUTPUT_SECURE_STRIPPED=0
 SIGNATURE_KEY=""
 OUTPUT_FILE=""
 
@@ -174,17 +177,30 @@ verify_optee_key
 
 # Strip elf file
 if [ -n "$INPUT_NSECURE" ]; then
-    # need to strip file
-    temp_file_name=$(basename $INPUT_NSECURE | sed "s/elf/stripped.elf/")
-    OUTPUT_NSECURE=$(echo "/tmp/$temp_file_name")
-    $OBJCOPY -S $INPUT_NSECURE $OUTPUT_NSECURE
+    if ! $(echo "$INPUT_NSECURE" | grep -q "stripped") ; then
+        echo "NSECURE [$INPUT_NSECURE] is not stripped"
+        # need to strip file
+        temp_file_name=$(basename $INPUT_NSECURE | sed "s/elf/stripped.elf/")
+        OUTPUT_NSECURE=$(echo "/tmp/$temp_file_name")
+        $OBJCOPY -S $INPUT_NSECURE $OUTPUT_NSECURE
+        echo "NSECURE [$INPUT_NSECURE] stripped [OUTPUT_NSECURE]"
+        OUTPUT_NSECURE_STRIPPED=1
+    else
+        OUTPUT_NSECURE=$INPUT_NSECURE
+    fi
 fi
-
 if [ -n "$INPUT_SECURE" ]; then
-    # need to strip file
-    temp_file_name=$(basename $INPUT_SECURE | sed "s/elf/stripped.elf/")
-    OUTPUT_SECURE=$(echo "/tmp/$temp_file_name")
-    $OBJCOPY -S $INPUT_SECURE $OUTPUT_SECURE
+    if ! $(echo "$INPUT_SECURE" | grep -q "stripped") ; then
+        echo "SECURE [$INPUT_SECURE] is not stripped"
+        # need to strip file
+        temp_file_name=$(basename $INPUT_SECURE | sed "s/elf/stripped.elf/")
+        OUTPUT_SECURE=$(echo "/tmp/$temp_file_name")
+        $OBJCOPY -S $INPUT_SECURE $OUTPUT_SECURE
+        echo "SECURE [$INPUT_SECURE] stripped [$OUTPUT_SECURE]"
+        OUTPUT_SECURE_STRIPPED=1
+    else
+        OUTPUT_SECURE=$INPUT_SECURE
+    fi
 fi
 
 # ----------------------------
@@ -197,9 +213,14 @@ fi
 # scripts/sign_rproc_fw.py  --in OpenAMP_TTY_echo_CM33_NonSecure.elf --in tfm_s_ipcc.elf --out tfm_sign.bin --key keys/default.pem --plat-tlv BOOTADDR 0x80000000  --plat-tlv BOOTSEC 0x01
 
 # UC 1: signature / non secure (and no Secure firmware)
-if [ -n $INPUT_NSECURE ]; then
+if [ -n $INPUT_NSECURE  -a -z "$INPUT_SECURE"]; then
     # signature / non secure (and no Secure firmware)
     filename=$(echo $OUTPUT_FILE"_"$DEFAULT_UC1_RADIX)
+    echo "[COPRO CMD] $TA_DEV_KIT_DIR/scripts/sign_rproc_fw.py \\
+            --in $OUTPUT_NSECURE \\
+            --key $SIGNATURE_KEY \\
+            --plat-tlv BOOTADDR $DEFAULT_NSBOOTADDR \\
+            --out $filename"
     $TA_DEV_KIT_DIR/scripts/sign_rproc_fw.py \
             --in $OUTPUT_NSECURE \
             --key $SIGNATURE_KEY \
@@ -210,6 +231,13 @@ fi
 if [ -n "$INPUT_NSECURE" -a -n  "$INPUT_SECURE" ]; then
     #  signature / secure and non secure firmware
     filename=$(echo $OUTPUT_FILE"_"$DEFAULT_UC2_RADIX)
+    echo "[COPRO SECURE CMD] $TA_DEV_KIT_DIR/scripts/sign_rproc_fw.py \\
+            --in $OUTPUT_NSECURE \\
+            --in $OUTPUT_SECURE  \\
+            --key $SIGNATURE_KEY \\
+            --plat-tlv BOOTADDR $DEFAULT_SBOOTADDR \\
+            --plat-tlv BOOTSEC 0x01 \\
+            --out $filename"
     $TA_DEV_KIT_DIR/scripts/sign_rproc_fw.py \
             --in $OUTPUT_NSECURE \
             --in $OUTPUT_SECURE  \
@@ -222,8 +250,12 @@ fi
 #--------------------------------
 # clean temporary file
 if [ -e $OUTPUT_NSECURE ]; then
-    rm -f $OUTPUT_NSECURE
+    if [ $OUTPUT_NSECURE_STRIPPED -eq 1 ]; then
+        rm -f $OUTPUT_NSECURE
+    fi
 fi
 if [ -e $OUTPUT_SECURE ]; then
-    rm -f $OUTPUT_SECURE
+    if [ $OUTPUT_SECURE_STRIPPED -eq 1 ]; then
+        rm -f $OUTPUT_SECURE
+    fi
 fi

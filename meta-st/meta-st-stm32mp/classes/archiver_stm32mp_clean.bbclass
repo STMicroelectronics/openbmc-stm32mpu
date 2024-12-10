@@ -56,6 +56,7 @@ archiver_git_uri() {
                -e "s|##PV##|${PV}|g" \
                -e "s|##PR##|${PR}|g" \
                -e "s|##MACHINE##|${MACHINE}|g" \
+               -e "s|##KERNEL_VERSION##|${KERNEL_VERSION}|g" \
                "${ARCHIVER_OUTDIR}/${ARCHIVER_README}"
     fi
 }

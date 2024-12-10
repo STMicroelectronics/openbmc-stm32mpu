@@ -21,13 +21,7 @@ is_dcmipp_present() {
                     sensorsubdev=$(tr -d '\0' < $sub/name)
                     #bridge is connected to output of sensor (":0 [ENABLED" with media-ctl -p)
                     bridgesubdev=$(media-ctl -d $mediadev -p -e "$sensorsubdev" | grep ":0 \[ENABLED" | awk -F\" '{print $2}')
-                    if [ "$subdev_name" = "gc2145" ]; then
-                        sensorbuscode_constrain="BE"
-                        parallelbuscode="RGB565_2X8_BE"
-                    else
-                        sensorbuscode_constrain="LE"
-                        parallelbuscode="RGB565_2X8_LE"
-                    fi
+                    parallelbuscode="RGB565_2X8_LE"
                     echo "media device: "$mediadev
                     echo "video device: "$V4L_DEVICE
                     echo "sensor    subdev: " $sensorsubdev
@@ -83,22 +77,20 @@ fi
 
 
 # Detect size of screen
-SCREEN_WIDTH=$(wayland-info | grep logical_width | sed -r "s/logical_width: ([0-9]+),.*/\1/")
-SCREEN_HEIGHT=$(wayland-info | grep logical_width | sed -r "s/.*logical_height: ([0-9]+).*/\1/")
-
+SCREEN_WIDTH=$(wayland-info -i zxdg_output_manager_v1 | grep -A2 "name" | tr '\n' ' ' | sed "s|--|#|g" |tr '#' '\n' | grep -v pipewire | tr '\t' '\n' | grep logical_width | sed -r "s/logical_width: ([0-9]+),.*/\1/")
+SCREEN_HEIGHT=$(wayland-info -i zxdg_output_manager_v1 | grep -A2 "name" | tr '\n' ' ' | sed "s|--|#|g" |tr '#' '\n' | grep -v pipewire | tr '\t' '\n' | grep logical_width | sed -r "s/.*logical_height: ([0-9]+).*/\1/")
 
 # camera detection
 is_dcmipp_present
 if [ "$DCMIPP_SENSOR" != "NOTFOUND" ]; then
     WIDTH=640
     HEIGHT=480
-    FPS=30
 
     sensordev=$(media-ctl -d $mediadev -p -e "$sensorsubdev" | grep "node name" | awk -F\name '{print $2}')
-    sensorbuscode=`v4l2-ctl --list-subdev-mbus-codes -d $sensordev | grep RGB565 | grep "$sensorbuscode_constrain" | awk -FMEDIA_BUS_FMT_ '{print $2}'| head -n 1`
+    sensorbuscode=`v4l2-ctl --list-subdev-mbus-codes -d $sensordev | grep RGB565 | awk -FMEDIA_BUS_FMT_ '{print $2}'| head -n 1`
     echo "sensor mbus-code: "$sensorbuscode
-    print_debug media-ctl -d $mediadev --set-v4l2 "'$sensorsubdev':0[fmt:$sensorbuscode/${WIDTH}x${HEIGHT}@1/${FPS} field:none]"
-    media-ctl -d $mediadev --set-v4l2 "'$sensorsubdev':0[fmt:$sensorbuscode/${WIDTH}x${HEIGHT}@1/${FPS} field:none]"
+    print_debug media-ctl -d $mediadev --set-v4l2 "'$sensorsubdev':0[fmt:$sensorbuscode/${WIDTH}x${HEIGHT} field:none]"
+    media-ctl -d $mediadev --set-v4l2 "'$sensorsubdev':0[fmt:$sensorbuscode/${WIDTH}x${HEIGHT} field:none]"
     print_debug media-ctl -d $mediadev --set-v4l2 "'$bridgesubdev':2[fmt:$sensorbuscode/${WIDTH}x${HEIGHT}]"
     media-ctl -d $mediadev --set-v4l2 "'$bridgesubdev':2[fmt:$sensorbuscode/${WIDTH}x${HEIGHT}]"
     print_debug media-ctl -d $mediadev --set-v4l2 "'dcmipp_input':1[fmt:$parallelbuscode/${WIDTH}x${HEIGHT}]"
@@ -111,7 +103,7 @@ if [ "$DCMIPP_SENSOR" != "NOTFOUND" ]; then
 else
     is_dcmi_present
     if [ "$DCMI_SENSOR" != "NOTFOUND" ]; then
-        COMPATIBLE_BOARD=$(cat /proc/device-tree/compatible | sed "s|st,|,|g" | cut -d ',' -f2)
+        COMPATIBLE_BOARD=$(tr -d '\0' < /proc/device-tree/compatible | sed "s|st,|,|g" | cut -d ',' -f2 | head -n 1 |tr '\n' ' ' | sed "s/ //g")
         case $COMPATIBLE_BOARD in
         stm32mp15*)
             WIDTH=640

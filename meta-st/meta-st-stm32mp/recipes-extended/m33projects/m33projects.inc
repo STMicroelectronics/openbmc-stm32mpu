@@ -7,10 +7,10 @@ B = "${S}"
 EXTERNALSRC_BUILD:pn-${PN} = "${S}"
 
 DEPENDS += "gcc-arm-none-eabi-native cmake-native"
-DEPENDS += "copro-sdk-native virtual/optee-os"
+DEPENDS += "copro-sdk-native virtual-optee-os"
 DEPENDS += "${@oe.utils.ifelse(d.getVar('M33PROJECT_TF_M_TRUSTZONE') == '1', 'tf-m-stm32mp','')}"
 # for optee script
-DEPENDS += "python3-pyelftools-native python3-pycryptodomex-native"
+DEPENDS += "python3-pyelftools-native python3-pycryptodomex-native python3-cryptography-native"
 
 # Default service for systemd
 inherit systemd update-rc.d python3native
@@ -19,6 +19,7 @@ SRC_URI += "file://st-m33firmware-load.service"
 SRC_URI += "file://shutdown-stm32mp2-m33.sh"
 # Temporary
 SRC_URI += "file://fw_cortex_m33.sh"
+SRC_URI += "file://fw_cortex_m0.sh"
 
 # Create specific userfs package
 M33_PACKAGE_4USERFS ?= "1"
@@ -26,6 +27,8 @@ PACKAGES += "${@bb.utils.contains('M33_PACKAGE_4USERFS', '1', '${PN}-userfs', ''
 
 # Define default board reference for M33
 M33_BOARDS ?= ""
+# Define default board reference for M0
+M0_BOARDS ?= ""
 
 # Init M33 board service install
 M33_BOARDS_SERVICE ?= "1"
@@ -49,10 +52,34 @@ export NSBOOTADDR="0x80100000"
 # M33 key settings
 M33_OPTEE_KEYNAME ?= "default.pem"
 
+M33_ELF_NOT_STRIPPED ??= "0"
+M0_ELF_NOT_STRIPPED ??= "0"
+
 do_compile() {
     unset CFLAGS CPPFLAGS CXXFLAGS LDFLAGS
     for BIN_MACHINE in ${M33_BOARDS}; do
-        for project in ${PROJECTS_LIST} ; do
+        for project in ${PROJECTS_LIST_M33} ; do
+            if [ "$(echo ${project} | cut -d'/' -f1)" = "${BIN_MACHINE}" ]; then
+                if [ -d "${B}/Projects/${project}" ]; then
+                    if [ $(basename ${project}) = "bin" ]; then
+                        continue
+                    fi
+                    if [ ! -e "${B}/Projects/${project}/CMakeLists.txt" ]; then
+                        continue
+                    fi
+                    cd "${B}/Projects/${project}"
+                    rm -rf ${B}/Projects/${project}/build
+                    export PATH=${STAGING_DATADIR_NATIVE}/gcc-arm-none-eabi/bin:${STAGING_BINDIR_NATIVE}:$PATH
+                    # generate Makefile
+                    ${STAGING_BINDIR_NATIVE}/cmake -G"Unix Makefiles" -B ${B}/Projects/${project}/build
+                    # build
+                    cd ${B}/Projects/${project}/build; ${STAGING_BINDIR_NATIVE}/make all
+                fi
+            fi
+        done
+    done
+    for BIN_MACHINE in ${M0_BOARDS}; do
+        for project in ${PROJECTS_LIST_M0} ; do
             if [ "$(echo ${project} | cut -d'/' -f1)" = "${BIN_MACHINE}" ]; then
                 if [ -d "${B}/Projects/${project}" ]; then
                     if [ ! -e "${B}/Projects/${project}/CMakeLists.txt" ]; then
@@ -69,9 +96,11 @@ do_compile() {
             fi
         done
     done
+
 }
 
 do_install() {
+    export OPENSSL_MODULES=${STAGING_LIBDIR_NATIVE}/ossl-modules/
     # Install M33 firmwares, scripts and README in userfs:
     # <userfs>/Cube-M33-examples/${project} (ie STM32MP257F-VALID3/Applications/OpenAMP/OpenAMP_TTY_echo)
     #                        |-- fw_cortex_m33.sh
@@ -80,30 +109,37 @@ do_install() {
     #                             |--firmware
     #                                  |-- ELF file for impacted board (ie OpenAMP_TTY_echo_CM33_NonSecure.elf)
     for BIN_MACHINE in ${M33_BOARDS}; do
-        for project in ${PROJECTS_LIST} ; do
+        for project in ${PROJECTS_LIST_M33} ; do
             if [ "$(echo ${project} | cut -d'/' -f1)" = "${BIN_MACHINE}" ]; then
                  if [ -d "${B}/Projects/${project}/build" ]; then
                      BIN_NAME=$(basename ${project})
                      PROJ_DIR=${project}/build
                      INSTALL_PROJ=${project}
                  else
-                     if [ -d "${B}/Projects/$(dirname {project})" ]; then
-                         BIN_NAME=$(basename ${project})
-                         PROJ_DIR=$(dirname ${project})
-                         INSTALL_PROJ=$(echo ${project} | sed 's,/bin/.*,,')
+                     if [ -d "${B}/Projects/${project}" ]; then
+                         BIN_NAME=$(basename $(dirname ${project}))
+                         PROJ_DIR=${project}
+                         INSTALL_PROJ=$(echo ${project} | sed 's,/bin,,')
                      else
-                         bbfatal "Issue with ${project}"
+                         bbfatal "[install] Issue with ${project}"
                      fi
                  fi
                 BIN_NAME_NS=$(echo $BIN_NAME"_CM33_NonSecure")
-                BIN_NAME_S=$(echo $BIN_NAME"_CM33_Secure")
-                BIN_NAME_NS_S=$(echo $BIN_NAME"_CM33_NonSecure")
                 project_lower=$(echo $BIN_MACHINE | sed -e 's/\(.*\)/\L\1/')
                 tfm_secure_binary_name=$(echo "tfm-"$project_lower"_s.elf")
 
                 # Install M33 firmwares
                 install -d ${D}${M33_OUTPUT_4USERFS}/${INSTALL_PROJ}/lib/firmware/
-                install -m 0755 ${B}/Projects/${PROJ_DIR}/${BIN_NAME_NS}.elf ${D}${M33_OUTPUT_4USERFS}/${INSTALL_PROJ}/lib/firmware/
+                if [ "${M33_ELF_NOT_STRIPPED}" = "1" ]; then
+                    install -m 0755 ${B}/Projects/${PROJ_DIR}/${BIN_NAME_NS}.elf ${D}${M33_OUTPUT_4USERFS}/${INSTALL_PROJ}/lib/firmware/
+                fi
+                if [ -e ${B}/Projects/${PROJ_DIR}/${BIN_NAME_NS}_stripped.elf ]; then
+                    install -m 0755 ${B}/Projects/${PROJ_DIR}/${BIN_NAME_NS}_stripped.elf ${D}${M33_OUTPUT_4USERFS}/${INSTALL_PROJ}/lib/firmware/
+                    BIN_NAME_NS_file=$(echo $BIN_NAME"_CM33_NonSecure_stripped")
+                else
+                    install -m 0755 ${B}/Projects/${PROJ_DIR}/${BIN_NAME_NS}.elf ${D}${M33_OUTPUT_4USERFS}/${INSTALL_PROJ}/lib/firmware/
+                    BIN_NAME_NS_file=$(echo $BIN_NAME"_CM33_NonSecure")
+                fi
 
                 # Install sh and README files if any for each example
                 if [ -e ${B}/Projects/${PROJ_DIR}/fw_cortex_m33.sh ]; then
@@ -115,17 +151,19 @@ do_install() {
 
                 # generate signed binaries
                 # generate ${BIN_NAME_NS}_sign.bin
-                ${STAGING_BINDIR_NATIVE}/st_copro_firmware_signature.sh \
-                        --input-nsecure ${D}${M33_OUTPUT_4USERFS}/${INSTALL_PROJ}/lib/firmware/${BIN_NAME_NS}.elf \
+                # Get isr_vectors from elf file
+                elf_NSBOOTADDR=$(${READELF} -S ${B}/Projects/${PROJ_DIR}/${BIN_NAME_NS}.elf | grep isr_vectors | awk '{print($5)}')
+                NSBOOTADDR=0x${elf_NSBOOTADDR} ${STAGING_BINDIR_NATIVE}/st_copro_firmware_signature.sh \
+                        --input-nsecure ${D}${M33_OUTPUT_4USERFS}/${INSTALL_PROJ}/lib/firmware/${BIN_NAME_NS_file}.elf \
                         --signature-key ${TA_DEV_KIT_DIR}/keys/${M33_OPTEE_KEYNAME} \
                         --output ${D}${M33_OUTPUT_4USERFS}/${INSTALL_PROJ}/lib/firmware/${BIN_NAME_NS}
                 if [ -e ${RECIPE_SYSROOT}/firmware/$tfm_secure_binary_name ]; then
-                    # generate ${BIN_NAME_NS_S}_tfm_sign.bin
+                    # generate ${BIN_NAME_NS}_tfm_sign.bin
                     ${STAGING_BINDIR_NATIVE}/st_copro_firmware_signature.sh \
-                            --input-nsecure ${D}${M33_OUTPUT_4USERFS}/${INSTALL_PROJ}/lib/firmware/${BIN_NAME_NS}.elf \
+                            --input-nsecure ${D}${M33_OUTPUT_4USERFS}/${INSTALL_PROJ}/lib/firmware/${BIN_NAME_NS_file}.elf \
                             --input-secure ${RECIPE_SYSROOT}/firmware/$tfm_secure_binary_name \
                             --signature-key ${TA_DEV_KIT_DIR}/keys/${M33_OPTEE_KEYNAME} \
-                            --output ${D}${M33_OUTPUT_4USERFS}/${INSTALL_PROJ}/lib/firmware/${BIN_NAME_NS_S}
+                            --output ${D}${M33_OUTPUT_4USERFS}/${INSTALL_PROJ}/lib/firmware/${BIN_NAME_NS}
                 else
                     bbwarn "The TFM firmware doesn't exist (file=$tfm_secure_binary_name)"
                 fi
@@ -141,6 +179,37 @@ do_install() {
                         done
                     fi
                 done
+            fi
+        done
+    done
+    for BIN_MACHINE in ${M0_BOARDS}; do
+        for project in ${PROJECTS_LIST_M0} ; do
+            if [ "$(echo ${project} | cut -d'/' -f1)" = "${BIN_MACHINE}" ]; then
+                 if [ -d "${B}/Projects/${project}/build" ]; then
+                     BIN_NAME=$(basename ${project})
+                     PROJ_DIR=${project}/build
+                     INSTALL_PROJ=${project}
+                 else
+                     if [ -d "${B}/Projects/${project}" ]; then
+                         BIN_NAME=$(basename $(dirname ${project}))
+                         PROJ_DIR=${project}
+                         INSTALL_PROJ=$(echo ${project} | sed 's,/bin,,')
+                     else
+                         bbfatal "[install M0] Issue with ${project}"
+                     fi
+                 fi
+                project_lower=$(echo $BIN_MACHINE | sed -e 's/\(.*\)/\L\1/')
+                BIN_NAME_NS=$(echo $BIN_NAME"_NonSecure")
+
+                # Install M0 firmwares
+                install -d ${D}${M33_OUTPUT_4USERFS}/${INSTALL_PROJ}/lib/firmware/
+                install -m 0755 ${B}/Projects/${PROJ_DIR}/${BIN_NAME_NS}_stripped.elf ${D}${M33_OUTPUT_4USERFS}/${INSTALL_PROJ}/lib/firmware/
+                install -m 0755 ${B}/Projects/${PROJ_DIR}/${BIN_NAME_NS}.bin ${D}${M33_OUTPUT_4USERFS}/${INSTALL_PROJ}/lib/firmware/
+                if [ "${M0_ELF_NOT_STRIPPED}" = "1" ]; then
+                    install -m 0755 ${B}/Projects/${PROJ_DIR}/${BIN_NAME_NS}.elf ${D}${M33_OUTPUT_4USERFS}/${INSTALL_PROJ}/lib/firmware/
+                fi
+                # Install sh and README files if any for each example
+                install -m 0755 ${WORKDIR}/fw_cortex_m0.sh ${D}${M33_OUTPUT_4USERFS}/${INSTALL_PROJ}/
             fi
         done
     done
@@ -199,3 +268,6 @@ RDEPENDS:${PN}-userfs += "busybox"
 
 # Avoid QA issue because binaries are for an Arm architecture but the platform is an AArch64
 INSANE_SKIP = "arch"
+INSANE_SKIP:${PN} = "already-stripped buildpaths"
+INSANE_SKIP:${PN}-userfs = "buildpaths"
+INSANE_SKIP:${PN}-dbg = "buildpaths"

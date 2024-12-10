@@ -94,6 +94,15 @@ def get_wlan_interface_name():
     return res
 # -------------------------------------------------------------------
 # -------------------------------------------------------------------
+# Get the wlan interface state ([UP, DOWN])
+def get_wlan_interface_state():
+    cmd = ["%s/application/netdata/bin/get_wlan_state.sh" % DEMO_PATH]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    res = proc.stdout.read().decode('utf-8')
+    return res
+
+# -------------------------------------------------------------------
+# -------------------------------------------------------------------
 # Get list of ip address
 def get_ip_address_list():
     cmd = ["%s/application/netdata/bin/get_ethernet_ip.sh" % DEMO_PATH]
@@ -154,8 +163,9 @@ def id_generator(size=6, chars=string.ascii_lowercase + string.digits):
 # -------------------------------------------------------------------
 
 class NetdataWebserver(Gtk.Dialog):
-    def __init__(self, parent):
+    def __init__(self, parent, log=0):
         Gtk.Dialog.__init__(self, "Wifi", parent, 0)
+        self.log = log
 
         if SIMULATE > 0:
             self.screen_width = 800
@@ -216,12 +226,13 @@ class NetdataWebserver(Gtk.Dialog):
         self.info_grid.attach(self.label_ip_ethernet, 1, 1, 1, 1)
 
         if self.is_wifi_available():
-            print ("wlan0 is available")
+            self.print_debug(1, "wlan0 is available")
             self.hotspot_switch = Gtk.Switch()
 
             # set wlan switch state on first execution
             ip_wlan0 = get_ip_address(get_wlan_interface_name())
-            if ip_wlan0 == WIFI_HOTSPOT_IP:
+            state_wlan0 = get_wlan_interface_state()
+            if state_wlan0 == "UP":
                 self.hotspot_switch.set_active(True)
             else:
                 self.hotspot_switch.set_active(False)
@@ -232,7 +243,7 @@ class NetdataWebserver(Gtk.Dialog):
             self.info_grid.attach(self.label_hotspot, 1, 3, 1, 1)
 
         else:
-            print ("wlan0 interface not available")
+            self.print_debug(1, "wlan0 interface not available")
             self.info_grid.attach(self.label_hotspot, 0, 3, 1, 1)
 
         self.page_ip.add(self.info_grid)
@@ -262,13 +273,13 @@ class NetdataWebserver(Gtk.Dialog):
                     i+=1
             file.close()
             if (i==2):
-                print("[Wifi: use hostapd configuration: ssid=%s, passwd=%s]\n" %(self.wifi_ssid, self.wifi_passwd))
+                self.print_debug(3, "[Wifi: use hostapd configuration: ssid=%s, passwd=%s]\n" %(self.wifi_ssid, self.wifi_passwd))
             else:
                 self.wifi_ssid=WIFI_DEFAULT_SSID
                 self.wifi_passwd=WIFI_DEFAULT_PASSWD
-                print("[Wifi: use default configuration: ssid=%s, passwd=%s]\n" %(self.wifi_ssid, self.wifi_passwd))
+                self.print_debug(3, "[Wifi: use default configuration: ssid=%s, passwd=%s]\n" %(self.wifi_ssid, self.wifi_passwd))
         else:
-            print("[Wifi: use default configuration: ssid=%s, passwd=%s]\n" %(self.wifi_ssid, self.wifi_passwd))
+            self.print_debug(3, "[Wifi: use default configuration: ssid=%s, passwd=%s]\n" %(self.wifi_ssid, self.wifi_passwd))
 
     def set_random_wifi_config(self):
         self.wifi_ssid="ST-" + id_generator()
@@ -278,14 +289,14 @@ class NetdataWebserver(Gtk.Dialog):
     def set_wifi_config(self, ssid, password):
         filepath = "/tmp/hostapd"
         file = open(filepath, "w")
-        print ("[Wifi: set hostapd config: ssid=%s, passwd=%s]" %(ssid, password))
+        self.print_debug(3, "[Wifi: set hostapd config: ssid=%s, passwd=%s]" %(ssid, password))
         file.write('HOSTAPD_SSID=%s\nHOSTAPD_PASSWD=%s\n' %(ssid, password))
         file.close()
         os.system('su -c \"cp /tmp/hostapd /etc/default/hostapd\"')
 
 
     def refresh_network_page(self):
-        print("[Refresh network page]\n")
+        self.print_debug(3, "[Refresh network page]\n")
 
         ip_list=get_ip_address_list().split()
         if len(ip_list) > 0:
@@ -302,15 +313,17 @@ class NetdataWebserver(Gtk.Dialog):
         self.label_ip_ethernet.set_markup(ethernet_status)
 
         if self.is_wifi_available():
-            print ("wlan0 is available")
+            self.print_debug(1, "wlan0 is available")
             ip_wlan0 = get_ip_address(get_wlan_interface_name())
+            state_wlan0 = get_wlan_interface_state()
 
-            print("Ip address of Wlan0 are: ", ip_wlan0)
-            if ip_wlan0 == "NA":
+            self.print_debug(1, "Ip address of Wlan0 are: {} {}<".format(ip_wlan0, state_wlan0))
+            if state_wlan0 == "UP" and ip_wlan0 == "NA":
                 sleep(1)
                 ip_wlan0 = get_ip_address(get_wlan_interface_name())
-                print("Ip address of Wlan0 are: ", ip_wlan0)
-            if ip_wlan0 == "NA":
+                state_wlan0 = get_wlan_interface_state()
+                self.print_debug(1, "Ip address of Wlan0 are(2): ", ip_wlan0, state_wlan0)
+            if state_wlan0 == "DOWN" or ip_wlan0 == "NA":
                 hotspot_status = "<span font='%d' color='#FF0000FF'>  Wifi not started</span>" % self.font_size
                 self.info_grid.remove_row(6)
             elif ip_wlan0 == WIFI_HOTSPOT_IP:
@@ -318,7 +331,7 @@ class NetdataWebserver(Gtk.Dialog):
                 hotspot_status = "<span font='%d' color='#00AA00FF'>  Wifi hotspot started</span>" % self.font_size
 
                 wifi_qrcode_cmd = "WIFI:S:%s;T:WPA;P:%s;;" %(self.wifi_ssid, self.wifi_passwd)
-                print("%s/bin/build_qrcode.sh" % os.path.join(DEMO_PATH,SUBMODULE_PATH), "-o /tmp/qr-code_wifi_access.png", wifi_qrcode_cmd)
+                self.print_debug(3, "%s/bin/build_qrcode.sh {} -o /tmp/qr-code_wifi_access.png {} .".format(os.path.join(DEMO_PATH,SUBMODULE_PATH), wifi_qrcode_cmd))
                 cmd = ["%s/bin/build_qrcode.sh" % os.path.join(DEMO_PATH,SUBMODULE_PATH), "-o /tmp/qr-code_wifi_access.png", wifi_qrcode_cmd]
                 proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 result = proc.stdout.read().decode('utf-8')
@@ -342,7 +355,7 @@ class NetdataWebserver(Gtk.Dialog):
                 self.info_grid.attach(self.label_ip_wlan0, 0, 6, 2, 1)
                 self.show_all()
         else:
-            print ("wlan0 interface not available")
+            self.print_debug(1, "wlan0 interface not available")
             hotspot_status = "<span font='%d' color='#FF0000FF'>  Wifi not available on board</span>" % self.font_size
 
         self.label_hotspot.set_markup(hotspot_status)
@@ -354,7 +367,7 @@ class NetdataWebserver(Gtk.Dialog):
         if (self.click_time - self.previous_click_time) < 0.01:
             self.previous_click_time = self.click_time
         elif (self.click_time - self.previous_click_time) < 0.3:
-            print ("double click : exit")
+            self.print_debug(3, "double click : exit")
             self.destroy()
         else:
             #print ("simple click")
@@ -369,16 +382,20 @@ class NetdataWebserver(Gtk.Dialog):
         self.refresh_network_page()
 
     def wifi_hotspot_start(self):
-        print('[DEBUG]: %s/application/netdata/bin/wifi_start.sh' % DEMO_PATH)
+        self.print_debug(3, '[DEBUG]: %s/application/netdata/bin/wifi_start.sh' % DEMO_PATH)
         os.system('%s/application/netdata/bin/wifi_start.sh' % DEMO_PATH)
 
 
     def wifi_hotspot_stop(self):
-        print('[DEBUG]:%s/application/netdata/bin/wifi_start.sh\"' % DEMO_PATH)
+        self.print_debug(3, '[DEBUG]:%s/application/netdata/bin/wifi_stop.sh\"' % DEMO_PATH)
         os.system('%s/application/netdata/bin/wifi_stop.sh' % DEMO_PATH)
 
-def create_subdialogwindow(parent):
-    _window = NetdataWebserver(parent)
+    def print_debug(self, level, msg):
+        if level <= self.log:
+            print("[NETDATA DEBUG] {}".format(str(msg)))
+
+def create_subdialogwindow(parent, log=0):
+    _window = NetdataWebserver(parent, log=log)
     _window.show_all()
     response = _window.run()
     _window.destroy()

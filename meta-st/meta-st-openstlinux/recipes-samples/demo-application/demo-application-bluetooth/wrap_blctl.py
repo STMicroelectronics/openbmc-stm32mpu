@@ -3,6 +3,20 @@ import pexpect
 import sys
 import re
 import pickle
+import subprocess
+
+##############################
+def getpipeoutput(cmds):
+    p = subprocess.Popen(cmds[0], stdout = subprocess.PIPE, shell = True)
+    processes=[p]
+    for x in cmds[1:]:
+        p = subprocess.Popen(x, stdin = p.stdout, stdout = subprocess.PIPE, shell = True)
+        processes.append(p)
+    output, error_out = p.communicate()
+    for p in processes:
+        p.wait()
+    return output.decode().rstrip('\n')
+
 
 ##############################
 # bluetoothctl tool wrapper
@@ -24,6 +38,10 @@ def read_prompt():
       f = open('/tmp/list_prompt', 'rb')
     except IOError as e:
         print("Cant not open the file : /tmp/list_prompt\n")
+        data = getpipeoutput(['bluetoothctl devices Connected', 'grep Device'])
+        if len(data) > 0:
+            data = getpipeoutput(['bluetoothctl devices Connected', 'grep Device', "cut -d ' ' -f 3-"])
+            return ["\["+data+"\]", pexpect.EOF]
         return None
     else:
         s = pickle.load(f)
@@ -41,7 +59,8 @@ class blctl_error(Exception):
 
 class wrapper_blctl:
 
-    def __init__(self):
+    def __init__(self, log=0):
+        self.log = log
         self.blctl_session = pexpect.spawn("bluetoothctl", echo = False, maxread = 3000)
 
         #no prompt expected because a BT device can be connected automatically
@@ -52,23 +71,26 @@ class wrapper_blctl:
         self.prompt = read_prompt()
         if self.prompt == None:
             self.prompt= ["\[bluetooth\]", pexpect.EOF]
-        #print(self.prompt)
+        self.print_debug(3, "PROMPT: {}".format(self.prompt))
 
     #execute a bluetoothctl command and return the result as a list of lines
     #no status cmd expected
     def blctl_command(self, command, pause = 0):
-        #print("blctl_command : " + command)
+        self.print_debug(3, "blctl_command : " + command)
         self.blctl_session.send(command + "\n")
         time.sleep(pause)
 
-        prompt_expect = self.blctl_session.expect(self.prompt)
+        try:
+            prompt_expect = self.blctl_session.expect(self.prompt)
 
-        if (prompt_expect > (len(self.prompt) - 1) or (prompt_expect < 0)):
-           raise blctl_error("The bluetoothctl command " + command  + " failed")
+            if (prompt_expect > (len(self.prompt) - 1) or (prompt_expect < 0)):
+               raise blctl_error("The bluetoothctl command " + command  + " failed")
+        except:
+            print("blctl_command: issue with prompt")
 
         str_output = str(self.blctl_session.before,"utf-8")
         output_array = str_output.split("\r\n")
-
+        # print("blctl_command output: >", output_array, "<")
         return output_array
 
     #execute a bluetoothctl command with status expected
@@ -76,7 +98,7 @@ class wrapper_blctl:
         print("blctl_command_with_status : " + command + "\n")
         status = status_expected
         status.extend([pexpect.EOF])
-        #print("prompt_status : %s\n", status)
+        #print("prompt_status : ", status)
 
         self.blctl_session.send(command + "\n")
         time.sleep(pause)
@@ -86,7 +108,7 @@ class wrapper_blctl:
         return res
 
     def close(self):
-        write_prompt(self.prompt)
+        #write_prompt(self.prompt)
         self.blctl_session.close()
 
     #build the list of bluetoothctl prompts
@@ -115,6 +137,7 @@ class wrapper_blctl:
     def parse_info(self, device_info):
         dev = {}
         info_isnot_valid = None
+        self.print_debug(3, "parse_info >%s<"% device_info)
         for reg in re_device_notvalid:
             info_isnot_valid = reg.search(device_info)
             if info_isnot_valid is not None:
@@ -149,7 +172,7 @@ class wrapper_blctl:
     #return a list of dic {mac_address, name}
     def blctl_paired_devices(self):
         try:
-            cmd_res = self.blctl_command("paired-devices")
+            cmd_res = self.blctl_command("devices Paired")
         except blctl_error as ex:
             print(ex)
             return None
@@ -194,3 +217,8 @@ class wrapper_blctl:
         cmd_res = self.blctl_command_with_status("remove " + mac_address, ["not available", "Failed to remove", "Device has been removed"], pause=3)
         passed = True if cmd_res == 2 else False
         return passed
+
+    def print_debug(self, level, msg):
+        if level <= self.log:
+            print("[BLUETOOTH DEBUG] {}".format(str(msg)))
+

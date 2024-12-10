@@ -1,7 +1,7 @@
 # Imports machine specific configs from staging to build
 PACKAGE_ARCH = "${MACHINE_ARCH}"
 
-DEPENDS = "optee-client virtual/optee-os python3-pycryptodomex-native libgcc"
+DEPENDS = "optee-client virtual-optee-os python3-pycryptodomex-native libgcc"
 DEPENDS += "openssl"
 DEPENDS += "python3-cryptography-native"
 

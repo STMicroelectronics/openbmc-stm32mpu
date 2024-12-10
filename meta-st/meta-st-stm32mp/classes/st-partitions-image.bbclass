@@ -80,11 +80,23 @@ python __anonymous () {
                     # Manage IMAGE_SUMMARY_LIST configuration according to PARTITIONS_IMAGE set
                     if d.getVar('ENABLE_IMAGE_LICENSE_SUMMARY') == "1":
                         if items[2] != '':
-                            image_summary_list += items[0] + ':' + items[2] + ';'
+                            if d.expand(items[1])[-2:] != 'fs':
+                                image_summary_list += items[0] + ':' + items[2] + ':' + items[1] + 'fs;'
+                            else:
+                                image_summary_list += items[0] + ':' + items[2] + ':' + items[1] + ';'
                         else:
                             # Set '/' as default mountpoint for rootfs in IMAGE_SUMMARY_LIST
-                            image_summary_list += items[0] + ':' + '/' + ';'
+                            if d.expand(items[1])[-2:] != 'fs':
+                                image_summary_list += items[0] + ':' + '/' + ':' + items[1] + 'fs;'
+                            else:
+                                image_summary_list += items[0] + ':' + '/' + ':' + items[1] + ';'
+
                     break
+
+    images_multiubi_depends = d.getVar('STM32MP_UBI_VOLUME_IMAGE_DEPENDS') or ""
+    if len(images_multiubi_depends) > 0:
+        for img_dep in images_multiubi_depends.split():
+            image_partitions.append(img_dep)
 
     # Reset IMAGE_LIST_SUMMARY with computed partition configuration
     if d.getVar('ENABLE_IMAGE_LICENSE_SUMMARY') == "1":
@@ -115,13 +127,13 @@ python __anonymous () {
                         # We need to make sure the manifest file is deployed as we need it for 'image_rootfs_image_clean_task'
                         d.appendVarFlag('do_image', 'depends', ' %s:do_populate_lic_deploy' % partition)
                     bb.debug(1, "Appending 'image_rootfs_image_clean_task' to IMAGE_PREPROCESS_COMMAND.")
-                    d.appendVar('IMAGE_PREPROCESS_COMMAND', 'image_rootfs_image_clean_task;')
+                    d.appendVar('IMAGE_PREPROCESS_COMMAND', ' image_rootfs_image_clean_task ')
                     bb.debug(1, "Set DEPLOY_BUILDINFO_FILE to '1' to allow to deploy build info file for rootfs build.")
                     d.setVar('DEPLOY_BUILDINFO_FILE', '1')
                     # Manage multiubi volume build enable for current image
                     if bb.utils.contains('IMAGE_FSTYPES', 'multiubi', True, False, d) and d.getVar('ENABLE_MULTIVOLUME_UBI') == "1":
                         bb.debug(1, "Appending 'st_multivolume_ubifs' to IMAGE_POSTPROCESS_COMMAND.")
-                        d.appendVar('IMAGE_POSTPROCESS_COMMAND', 'st_multivolume_ubifs;')
+                        d.appendVar('IMAGE_POSTPROCESS_COMMAND', ' st_multivolume_ubifs ')
 
     # -----------------------------------------------------------------------------
     # Make sure that 'wic' image fstype is properly configured for partition image handling
@@ -172,6 +184,7 @@ python image_rootfs_image_clean_task(){
             items = v.split(',')
             _img_partition=d.expand(items[0])
             _img_mountpoint=d.expand(items[2])
+            _img_suffix=d.expand(items[1])
 
             # Do not search for the rootfs
             if not items[2]:
@@ -197,7 +210,7 @@ python image_rootfs_image_clean_task(){
 
             # Manifest file of the partition to check packages are in that partition
             manif_file = os.path.join(deploy_image_dir, "images", machine,
-                         _img_partition + "-" + distro + "-" + machine + ".manifest")
+                         _img_partition + "-" + distro + "-" + machine + "."+ _img_suffix +".manifest")
             try:
                 manifest_content = open(manif_file, "r")
                 contents = manifest_content.read().splitlines()
@@ -272,7 +285,7 @@ python extract_buildinfo() {
         rootfs_path = d.getVar('IMAGE_ROOTFS')
         buildinfo_srcfile = os.path.normpath(rootfs_path + '/' + buildinfo_origin)
         if os.path.isfile(buildinfo_srcfile):
-            buildinfo_deploy = os.path.basename(d.getVar('IMAGE_BUILDINFO_FILE')) + '-' + d.getVar('IMAGE_LINK_NAME')
+            buildinfo_deploy = os.path.basename(d.getVar('IMAGE_BUILDINFO_FILE')) + '-' + d.getVar('IMAGE_LINK_NAME').replace(d.getVar('IMAGE_NAME_SUFFIX'), '')
             buildinfo_dstfile = os.path.join(d.getVar('IMGDEPLOYDIR'), buildinfo_deploy)
             shutil.copy2(buildinfo_srcfile, buildinfo_dstfile)
         else:

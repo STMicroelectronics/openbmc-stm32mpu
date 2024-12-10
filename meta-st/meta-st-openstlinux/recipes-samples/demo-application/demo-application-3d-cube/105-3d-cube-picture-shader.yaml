@@ -3,7 +3,7 @@ Application:
     Description: GPU shader
     Icon: application/3d-cube-extra/pictures/ST153_cube_purple.png
     Board:
-        List: stm32mp157 stm32mp257
+        List: stm32mp157 stm32mp257 stm32mp235
     Type: script
     Script:
         Exist:

@@ -1,6 +1,6 @@
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
-COMPATIBLE_MACHINE = "(stm32mpcommon)"
+COMPATIBLE_MACHINE = "(stm32mp1common)"
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"
 

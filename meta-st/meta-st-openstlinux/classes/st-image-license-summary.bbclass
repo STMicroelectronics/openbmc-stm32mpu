@@ -9,8 +9,8 @@ ENABLE_IMAGE_LICENSE_SUMMARY ??= "0"
 # We can define one or more additional images built as additional partitions
 # to the default rootfs one (${IMAGE_BASENAME}:/) thought IMAGE_SUMMARY_LIST var
 # with format
-#   IMAGE_SUMMARY_LIST = "<image_name_1>:<image_mountpoint_1>;${IMAGE_BASENAME}:/;<image_name_2>:<image_mountpoint_2"
-IMAGE_SUMMARY_LIST ?= "${IMAGE_BASENAME}:/"
+#   IMAGE_SUMMARY_LIST = "<image_name_1>:<image_mountpoint_1>:<image_suffix_1>;${IMAGE_BASENAME}:/;<image_name_2>:<image_mountpoint_2:<image_suffix_1>"
+IMAGE_SUMMARY_LIST ?= "${IMAGE_BASENAME}:/:rootfs"
 
 LICENSE_SUMMARY_DEPLOYDIR ?= "${DEPLOY_DIR}/images/${MACHINE}"
 LICENSE_SUMMARY_DIR ?= "${WORKDIR}/license-summary/"
@@ -25,6 +25,7 @@ def license_create_summary(d):
     temp_deploy_image_dir = d.expand("${IMGDEPLOYDIR}")
     license_deploy_dir = d.expand("${DEPLOY_DIR}/licenses")
     pkgdata_dir = d.expand("${TMPDIR}/pkgdata/${MACHINE}")
+    machine = d.expand("${MACHINE}")
 
     license_summary_deploydir = d.getVar('LICENSE_SUMMARY_DIR')
     license_summary_name = d.getVar('LICENSE_SUMMARY_NAME')
@@ -39,6 +40,7 @@ def license_create_summary(d):
             continue
         img_name = img.split(':')[0].strip()
         img_mount = img.split(':')[1].strip()
+        img_suffix = img.split(':')[2].strip()
         # Remove DISTRO from image name to avoid long name
         img_name = re.sub(r'-%s$' % d.getVar('DISTRO'), '', img_name)
         # Configure target folder to search for image file
@@ -54,19 +56,20 @@ def license_create_summary(d):
                 r = re.compile(r"(.*)-(\d\d\d\d+)")
                 mi = r.match(os.path.basename(fi))
                 if mi:
-                    image_list_arrray.append([mi.group(1), mi.group(2), img_name, img_mount, filter])
+                    image_list_arrray.append([mi.group(1), mi.group(2), img_name, img_mount, img_suffix, filter])
     # Append any INITRD image to image_list_arrray
     initrd_img = d.getVar('INITRD_IMAGE_ALL') or d.getVar('INITRD_IMAGE') or ""
     for img_name in initrd_img.split():
         img_ext = d.getVar('INITRAMFS_FSTYPES') or ""
         img_mount = '/'
+        img_suffix = 'rootfs'
         filter = False
         for fi in os.listdir(deploy_image_dir):
             if fi.startswith(img_name) and fi.endswith(img_ext):
                 r = re.compile(r"(.*)-(\d\d\d\d+)")
                 mi = r.match(os.path.basename(fi))
                 if mi:
-                    image_list_arrray.append([mi.group(1), mi.group(2), img_name, img_mount, filter])
+                    image_list_arrray.append([mi.group(1), mi.group(2), img_name, img_mount, img_suffix, filter])
 
     if tab.startswith("1"):
         with_tab = 1
@@ -504,10 +507,11 @@ def license_create_summary(d):
         for img in image_list_arrray:
             _image_prefix = img[0]
             _image_date = img[1]
+            _image_suffix = img[4]
 
             if _image_prefix == ref_image_name:
                 _image_package = "image_license.manifest"
-                boot_file_to_read = license_deploy_dir + "/" + _image_prefix + "-" + _image_date + "/" + _image_package
+                boot_file_to_read = license_deploy_dir + "/" + machine + "/" + _image_prefix +  "-" + _image_date + "/" + _image_package
 
         if boot_file_to_read:
             contents = private_open(boot_file_to_read)
@@ -571,7 +575,8 @@ def license_create_summary(d):
             _image_date = img[1]
             _image_name = img[2]
             _image_mount_point = img[3]
-            _image_filter = img[4]
+            _image_suffix = img[4]
+            _image_filter = img[5]
 
             html.addNewLine()
             html.addNewLine()
@@ -586,7 +591,7 @@ def license_create_summary(d):
             html.stopTable()
 
             _image_package="package.manifest"
-            file_to_read = license_deploy_dir + "/" + _image_prefix + "-" + _image_date + "/" + _image_package
+            file_to_read = license_deploy_dir + "/" + machine + "/" + _image_prefix + "-" + _image_date + "/" + _image_package
             contents = private_open(file_to_read)
             #print("Process for %s" % _image_prefix)
 

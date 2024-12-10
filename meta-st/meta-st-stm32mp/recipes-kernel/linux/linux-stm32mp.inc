@@ -7,7 +7,7 @@ inherit external-dt
 inherit multilib_header
 
 # For FIT image to expand properly for UBOOT_CONFIG vars
-include ${@["", "recipes-bsp/u-boot/u-boot-stm32mp-config.inc"][(bb.data.inherits_class('uboot-config', d))]}
+include ${@bb.utils.contains('MACHINE_FEATURES', 'fit', 'recipes-bsp/u-boot/u-boot-stm32mp-config.inc', '', d)}
 
 DEPENDS += "openssl-native util-linux-native libyaml-native"
 DEPENDS += "unifdef-native bison-native rsync-native"
@@ -29,6 +29,24 @@ EXTRA_OEMAKE += "${@bb.utils.contains('EXTERNAL_DT_ENABLED', '1', 'KBUILD_EXTDTS
 
 # Deploy kernel config file to deploy folder
 KERNEL_CONFIG_DEPLOY ??= "0"
+
+# scmversion
+# in case of several build with the same source code ( git, devtools),
+# a scmversion file is create on source code but never added
+# on build directory except for first build.
+# => Need to create the file in all case
+do_configure:prepend() {
+    if [ ! -d ${B} ]; then
+        mkdir -p ${B}
+    fi
+    if [ ! -e ${B}/.scmversion ]; then
+        echo ${KERNEL_LOCALVERSION} > ${B}/.scmversion
+    fi
+    if [ ! -e ${S}/.scmversion ]; then
+        echo ${KERNEL_LOCALVERSION} > ${B}/.scmversion
+        echo ${KERNEL_LOCALVERSION} > ${S}/.scmversion
+    fi
+}
 
 # ---------------------------------------------------------------------
 # Defconfig
@@ -91,6 +109,18 @@ do_install:prepend() {
         done
     fi
 }
+correct_buildpaths() {
+    FILES=" \
+    ${B}/drivers/video/logo/logo_linux_clut224.c \
+    ${B}/drivers/tty/vt/consolemap_deftbl.c \
+    ${B}/lib/oid_registry_data.c \
+    "
+    for f in $FILES; do
+        if [ -e $f ]; then
+            sed -i "s|${TMPDIR}||g" $f
+        fi
+    done
+}
 do_install:append() {
     # Install KERNEL_IMAGETYPE for kernel-imagebootfs package
     install -m 0644 ${KERNEL_OUTPUT_DIR}/${KERNEL_IMAGETYPE} ${D}/${KERNEL_IMAGEDEST}
@@ -118,6 +148,9 @@ do_install:append() {
     rm -f ${D}${prefix}/src/linux-header-${LINUX_VERSION}/include/scsi/scsi.h
     # The ..install.cmd conflicts between various configure runs
     find ${D}${prefix}/src/linux-header-${LINUX_VERSION} -name ..install.cmd | xargs rm -f
+
+    # correct buildpaths qa
+    correct_buildpaths
 }
 # ---------------------------------------------------------------------
 do_deploy:append() {

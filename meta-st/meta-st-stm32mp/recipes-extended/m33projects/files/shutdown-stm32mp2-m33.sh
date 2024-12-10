@@ -1,7 +1,7 @@
 #!/bin/sh -
 
 # test if we are a stm32mp2
-if ! $(grep -q "stm32mp257" /proc/device-tree/compatible) ;
+if ! $(grep -q "stm32mp2" /proc/device-tree/compatible) ;
 then
     exit 0
 fi

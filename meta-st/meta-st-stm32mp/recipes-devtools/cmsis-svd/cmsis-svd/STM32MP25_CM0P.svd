@@ -20,7 +20,7 @@ Copyright (c) 2024 STMicroelectronics.
 xmlns:xs="http://www.w3.org/2001/XMLSchema-instance"
 xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
   <name>STM32MP25_CM0P</name>
-  <version>0.6</version>
+  <version>1.0</version>
   <description>STM32MP25_CM0P</description>
   <cpu>
     <name>CM0PLUS</name>

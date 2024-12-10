@@ -16,10 +16,13 @@ get_type() {
             ROOT_TYPE="nand"
             ;;
         /dev/mmcblk0*)
-            ROOT_TYPE="sdmmc"
+            ROOT_TYPE="mmc0"
             ;;
         /dev/mmcblk1*)
-            ROOT_TYPE="mmc"
+            ROOT_TYPE="mmc1"
+            ;;
+        /dev/mmcblk2*)
+            ROOT_TYPE="mmc2"
             ;;
         /dev/disk/by-*)
             LINK=$(/usr/bin/readlink $ROOT_DEVICE | tr '/' ' ' | tr '.' ' ' | sed "s/ //g")
@@ -28,19 +31,24 @@ get_type() {
                 ROOT_TYPE="nand"
                 ;;
             mmcblk0*)
-                ROOT_TYPE="sdmmc"
+                ROOT_TYPE="mmc0"
                 ;;
             mmcblk1*)
-                ROOT_TYPE="mmc"
+                ROOT_TYPE="mmc1"
+                ;;
+            mmcblk2*)
+                ROOT_TYPE="mmc2"
                 ;;
             esac
             ;;
         esac
     else
         if [ `cat /proc/cmdline | sed "s/.*mmcblk0.*/mmcblk0/" ` == "mmcblk0" ]; then
-            ROOT_TYPE="sdmmc"
+            ROOT_TYPE="mmc0"
         elif [ `cat /proc/cmdline | sed "s/.*mmcblk1.*/mmcblk1/" ` == "mmcblk1" ]; then
-            ROOT_TYPE="mmc"
+            ROOT_TYPE="mmc1"
+        elif [ `cat /proc/cmdline | sed "s/.*mmcblk2.*/mmcblk2/" ` == "mmcblk2" ]; then
+            ROOT_TYPE="mmc2"
         elif [ `cat /proc/cmdline | sed "s/.*ubi0.*/ubi0/" ` == "ubi0" ]; then
             ROOT_TYPE="nand"
         elif [ `cat /proc/cmdline | sed "s/.*nfsroot.*/nfs/" ` == "nfs" ]; then
@@ -74,23 +82,18 @@ found_devices() {
                 fi
             done
             ;;
-        sdmmc)
-            local sdmmc_parts=$(ls -1 -d /sys/block/mmcblk0/mmcblk0p*)
-            for f in $sdmmc_parts;
-            do
-                if [ -r $f/uevent ];
-                then
-                    cat $f/uevent | grep PARTNAME | sed "s/PARTNAME=//" | grep -sq "^${_search}"
-                    if [ "$?" -eq 0 ];
-                    then
-                        _device="/dev/$(basename $f)"
-                        break;
-                    fi
-                fi
-            done
-            ;;
-        mmc)
-            local mmc_parts=$(ls -1 -d /sys/block/mmcblk1/mmcblk1p*)
+        mmc*)
+            case $_type in
+            mmc0)
+                local mmc_parts=$(ls -1 -d /sys/block/mmcblk0/mmcblk0p*)
+                ;;
+            mmc1)
+                local mmc_parts=$(ls -1 -d /sys/block/mmcblk1/mmcblk1p*)
+                ;;
+            mmc2)
+                local mmc_parts=$(ls -1 -d /sys/block/mmcblk2/mmcblk2p*)
+                ;;
+            esac
             for f in $mmc_parts;
             do
                 if [ -r $f/uevent ];

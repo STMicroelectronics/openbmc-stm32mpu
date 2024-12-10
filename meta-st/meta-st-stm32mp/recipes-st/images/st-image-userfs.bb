@@ -3,6 +3,8 @@ LICENSE = "MIT"
 
 include recipes-st/images/st-image-partitions.inc
 
+IMAGE_NAME_SUFFIX = ".userfs"
+
 # Define to null ROOTFS_MAXSIZE
 IMAGE_ROOTFS_MAXSIZE = ""
 

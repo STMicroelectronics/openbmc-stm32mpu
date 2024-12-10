@@ -328,7 +328,7 @@ def gtk_style():
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
 class BluetoothWindow(Gtk.Dialog):
-    def __init__(self, parent):
+    def __init__(self, parent, log=0):
         Gtk.Dialog.__init__(self, "Wifi", parent, 0)
         self.maximize()
         self.set_decorated(False)
@@ -426,7 +426,7 @@ class BluetoothWindow(Gtk.Dialog):
         # enable bluetooth
         os.system('su -c \"hciconfig hci0 up\"')
         #self.bluetooth_state = os.system('hciconfig hci0 up')
-        self.bl = Bluetoothctl()
+        self.bl = Bluetoothctl(log=log)
 
         list_devices(self, paired=True)
         self.audio_bt_sink = status_playback(self)
@@ -573,8 +573,8 @@ class BluetoothWindow(Gtk.Dialog):
 
 # -------------------------------------------------------------------
 # -------------------------------------------------------------------
-def create_subdialogwindow(parent):
-    _window = BluetoothWindow(parent)
+def create_subdialogwindow(parent, log=0):
+    _window = BluetoothWindow(parent, log=log)
     _window.show_all()
     response = _window.run()
     _window.destroy()

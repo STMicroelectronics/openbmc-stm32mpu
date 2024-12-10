@@ -23,24 +23,30 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <getopt.h>
 
 #include <pixman.h>
 #include <png.h>
 #include "image_header.h"
 
+// define to verify if the picture is a png
+#define VERIFY_IF_IS_PNG 1
 
+#define MAX_FRAME_NB 100
 #define SPLASH_FIFO "/tmp/splash_fifo"
-
+#define FRAME_DELAY_MS 100
 #define MAX_HEIGHT_THRESHOLD 720
 //-----------------------
 // Static variable
 static int drm_fd;
 static int pipe_fd;
 static int wait = 0;
+static int animation = 0;
 static int display_max_size = MAX_HEIGHT_THRESHOLD;
 static int force_hdmi = 0;
 static int force_no_hdmi = 0;
+volatile int loop = 0;
 //----------------------
 // Prototype
 struct modeset_dev;
@@ -57,7 +63,7 @@ static void modeset_draw_bgcolor (uint8_t r_p, uint8_t g_p, uint8_t b_p);
 static void modeset_cleanup (int fd);
 
 static void splash_draw_image_center (void);
-
+void splash_exit (int signum);
 
 // --------------------------------------------- //
 //                 Modeset function
@@ -526,14 +532,14 @@ splash_draw_image_center (void)
             img_height = SPLASH_IMG_HEIGHT;
             img_bytes_per_pixel = SPLASH_IMG_BYTES_PER_PIXEL;
             rle_data = SPLASH_IMG_RLE_PIXEL_DATA;
-        } else {
+        }
+        else {
             /* Else portrait, ie. use image with 90 degree rotation */
             img_width = SPLASH_IMG_ROT_WIDTH;
             img_height = SPLASH_IMG_ROT_HEIGHT;
             img_bytes_per_pixel = SPLASH_IMG_ROT_BYTES_PER_PIXEL;
             rle_data = SPLASH_IMG_ROT_RLE_PIXEL_DATA;
         }
-
         x = (iter->width - img_width) / 2;
         y = (iter->height - img_height) / 2;
         splash_draw_image_for_modeset (iter, x, y, img_width, img_height,
@@ -571,34 +577,30 @@ parse_command (char *string, int length)
     return 0;
 }
 
-void
-splash_processing ()
-{
+int
+splash_processing(int timeout, int ms) {
     int            err;
     ssize_t        length = 0;
     fd_set         descriptors;
     struct timeval tv;
     char          *end;
     char           command[2048];
-    int            timeout = 2; //2 sec
 
     tv.tv_sec = timeout;
-    tv.tv_usec = 0;
+    tv.tv_usec = ms;
 
     FD_ZERO(&descriptors);
     FD_SET(pipe_fd, &descriptors);
 
     end = command;
 
-    if (wait > 0)
-        timeout = 0;
     while (1) {
-        if (timeout != 0)
+        if ((timeout > 0) || (ms > 0))
             err = select(pipe_fd+1, &descriptors, NULL, NULL, &tv);
         else
             err = select(pipe_fd+1, &descriptors, NULL, NULL, NULL);
         if (err <= 0) {
-            return;
+            return 0;
         }
         length += read (pipe_fd, end, sizeof(command) - (end - command));
         if (length == 0) {
@@ -610,26 +612,26 @@ splash_processing ()
         if (command[length-1] == '\0') {
             fprintf(stderr, "1 %m\n");
             if (parse_command(command, strlen(command)))
-                return;
+                return 1;
             length = 0;
         }
         else if (command[length-1] == '\n') {
             command[length-1] = '\0';
             if (parse_command(command, strlen(command)))
-                return;
+                return 1;
             length = 0;
         }
     out:
       end = &command[length];
 
       tv.tv_sec = timeout;
-      tv.tv_usec = 0;
+      tv.tv_usec = ms;
 
       FD_ZERO(&descriptors);
       FD_SET(pipe_fd,&descriptors);
     }
 
-    return;
+    return 0;
 }
 int get_valid_dri_card() {
     int ind = 0;
@@ -652,11 +654,25 @@ static void
 pixman_image_destroy_func(pixman_image_t *image, void *data) {
     free(data);
 }
+
 static void
-read_user_callback(png_structp   png,
+read_user_callback(png_structp png,
                  png_row_infop row_info,
                  png_bytep     data)
 {
+
+    // Verify entries
+    if (!png || !row_info || !data) {
+        fprintf(stderr, "Invalid pointer(s) provided to read_user_callback.\n");
+        return;
+    }
+
+    // Verify row_info->rowbytes is multiple of 4 for bypassing alignment issue
+    if (row_info->rowbytes % 4 != 0) {
+        fprintf(stderr, "Row bytes is not a multiple of 4 in read_user_callback.\n");
+        return;
+    }
+
     unsigned int i;
     png_bytep p;
     int tmp;
@@ -674,16 +690,22 @@ read_user_callback(png_structp   png,
 
             if (alpha != 0xff) {
                 tmp = ((alpha * red) + 0x80);
-                red   = ((tmp + (tmp >>8)) >> 8);
+                red   = ((tmp + (tmp >> 8)) >> 8);
                 tmp = ((alpha * green) + 0x80);
-                green = ((tmp + (tmp >>8)) >> 8);
+                green = ((tmp + (tmp >> 8)) >> 8);
                 tmp = ((alpha * blue) + 0x80);
-                blue  = ((tmp + (tmp >>8)) >> 8);
-        }
+                blue  = ((tmp + (tmp >> 8)) >> 8);
+            }
             w = (alpha << 24) | (red << 16) | (green << 8) | (blue << 0);
         }
 
-        * (uint32_t *) p = w;
+        // verify if we not write at end of line of pixels
+        if (i + 3 < row_info->rowbytes) {
+            *(uint32_t *)p = w;
+        } else {
+            fprintf(stderr, "Attempt to write beyond pixel row in read_user_callback.\n");
+            return;
+        }
     }
 }
 
@@ -778,8 +800,7 @@ static pixman_image_t *read_png_image(FILE *fp)
     return pixman_image;
 }
 
-static pixman_image_t *
-load_image(char *filename) {
+static pixman_image_t *load_image(const char *filename) {
     FILE *fp = NULL;
     unsigned char header[4];
     pixman_image_t *ppixman_image = NULL;
@@ -795,7 +816,8 @@ load_image(char *filename) {
         printf("[ERROR] load_image: %s: %s\n", filename, strerror(errno));
         goto end;
     }
-    // verify if it's a png file
+#ifdef VERIFY_IF_IS_PNG
+    //verify if it's a png file
     if (fread(header, sizeof header, 1, fp) != 1) {
         fclose(fp);
         printf("[ERROR] load_image: %s: unable to read file header\n", filename);
@@ -805,48 +827,87 @@ load_image(char *filename) {
          (header[1] == 'P') &&
          (header[2] == 'N') &&
          (header[3] == 'G') ) {
-            printf("load_image: %s is a png\n", filename);
+            //printf("load_image: %s is a png\n", filename);
     } else {
         printf("[ERROR] load_image: %s: is not a PNG image\n", filename);
+        fclose(fp);
         return NULL;
     }
+#endif
     rewind(fp);
 
     ppixman_image = read_png_image(fp);
+    fclose(fp);
 
 end:
-    fclose(fp);
     return ppixman_image;
+}
+
+
+int
+draw_frame(struct modeset_dev *dev, const char *filename)
+{
+    //fprintf(stderr,"[info] draw frame >'%s'<\n",filename);
+    pixman_image_t *image = load_image(filename);
+    if(!image){
+        fprintf(stderr,"[ERROR] failed to load image '%s'\n",filename);
+        return -1;
+    }
+    uint32_t *µsrc = (uint32_t *)pixman_image_get_data(image);
+    int src_width = pixman_image_get_width(image);
+    int src_height = pixman_image_get_height(image);
+
+    for(int y = 0;y<dev->height && y <src_height;y++){
+        for(int x= 0; x<dev->width && x< src_width;x++){
+            ((uint32_t*)(dev->map))[y * (dev->stride /4)+x] = µsrc[y * src_width + x];
+        }
+    }
+    pixman_image_unref(image);
+    return 0;
+}
+
+static long
+get_time_in_microseconds() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec * 1000000 + tv.tv_usec;
 }
 
 // --------------------------------------------- //
 //           Main
 // --------------------------------------------- //
-static const char *shortopts = "wb:f:hFN";
+static const char *shortopts = "wb:f:hFNrn:l";
 
 static const struct option longopts[] = {
     {"wait",    no_argument,       0, 'w'},
     {"background",        required_argument, 0, 'b'},
     {"filename",  required_argument, 0, 'f'},
+    {"framerate",  required_argument, 0, 'r'},
+    {"numbre",  required_argument, 0, 'n'},
     {"force-hdmi", no_argument,       0, 'F'},
     {"maxsize",  required_argument, 0, 'm'},
     {"force-no-hdmi", no_argument,       0, 'N'},
     {"help",          no_argument,       0, 'h'},
+    {"loop", no_argument, 0, 'l'},
     {0, 0, 0, 0}
 };
+
 static void
 usage(int error_code)
 {
-    fprintf(stderr, "Usage: psplash-drm [-w][-h][-f <image name>][-b RRGGBB]\n"
+    fprintf(stderr, "Usage: psplash-drm [-w][-h][-f <image name>][-r <framerate>][-, <numbre>][-b RRGGBB][-l]\n"
         "\n"
         "options:\n"
-            "  -w, --wait         Display image and wait\n"
+            "  -w, --wait                  Display image and wait\n"
             "  -b, --background=RRGGBB     Set the background color\n"
             "  -f, --filename=image name   Image to display\n"
+            "  -r  --framerate             Frame per second\n"
+            "  -n  --numbre                Numbre of images\n"
+            "  -l  --loop                  Looping annimation\n"
             "  -F, --force-hdmi            Force to display on hdmi\n"
-            "  -m, --maxsize=max size to negociate\n"
-            "  -N, --force-no-hdmi         Force to not use hdmi"
-            "  -h, --help                  This help text\n\n");
+            "  -m, --maxsize=max           size to negociate\n"
+            "  -N, --force-no-hdmi         Force to not use hdmi\n"
+            "  -h, --help                  This help text\n");
     exit(error_code);
 }
 
@@ -862,7 +923,11 @@ main (int argc, char **argv)
     char background_green = 0x23;
     char background_blue = 0x4b;
     int opt;
-    char *filename = "";
+    char filename[256] = "";
+    char image_path[256];
+    int framerate = 14;
+    int num = 50;
+    int frame_delay_us = 1000000 / framerate;
     pixman_image_t *pixman_image = NULL;
 
     /* check which DRM device to open */
@@ -900,8 +965,20 @@ main (int argc, char **argv)
             free(color);
             break;
         case 'f':
-            filename = strdup(optarg);
-            printf("Filename of image: %s\n", filename);
+            strncpy(filename, optarg, sizeof(filename) - 1);
+            filename[sizeof(filename) - 1] = '\0';
+            break;
+        case 'r':
+            framerate = atoi(optarg);
+            if (framerate <= 0) {
+                fprintf(stderr, "Invalid framerate value: %s\n", optarg);
+                usage(EXIT_FAILURE);
+            }
+            frame_delay_us = 1000000 / framerate;
+            break;
+        case 'l': // loop for animation
+            loop = 1;
+            printf("Looping animation enabled\n");
             break;
         case 'F':
             force_hdmi = 1;
@@ -915,7 +992,13 @@ main (int argc, char **argv)
             force_no_hdmi = 1;
             printf("Force to not use HDMI\n");
             break;
-
+        case 'n': //number of image for animation
+            num = atoi(optarg);
+            if (num <= 0) {
+                fprintf(stderr, "Invalid numbre of images: %s\n", optarg);
+                usage(EXIT_FAILURE);
+            }
+            break;
         default:
             usage(EXIT_FAILURE);
             break;
@@ -944,7 +1027,6 @@ main (int argc, char **argv)
     /* restore old umask */
     umask(oldMask);
 
-
     //open fifo for receiving command
     tmpdir = getenv("TMPDIR");
     if (!tmpdir)
@@ -960,10 +1042,9 @@ main (int argc, char **argv)
     if (strlen(filename) > 0) {
         printf("try filename -> %s\n", filename);
 
-        pixman_image  = load_image(filename);
-
-        if (pixman_image_get_width(pixman_image) <= 0)
-            exit(-3);
+        if (strchr(filename, '%') != NULL) {
+            animation = 1;
+        }
     }
 
     /* open the DRM device */
@@ -986,9 +1067,39 @@ main (int argc, char **argv)
                     iter->conn, errno);
     }
 
+    if (animation) {
+        /* animation loop */
+        do {
+            for(int i = 0; i< num ; ++i){
+
+                snprintf(image_path,sizeof(image_path),filename,i);
+                for(struct modeset_dev *iter = modeset_list; iter; iter = iter->next){
+                    long start_time = get_time_in_microseconds();
+                    if (draw_frame(iter,image_path) < 0) goto next;
+                    long end_time = get_time_in_microseconds();
+                    long frame_time = end_time - start_time;
+                    long delay = frame_delay_us - frame_time;
+                    if (delay > 0) {
+                        usleep(delay);
+                    }else {
+                        printf("Warning: Frame processing time (%ld micros) exceeded frame delay (%d micros).\n", frame_time, frame_delay_us);
+                    }
+
+                    if (splash_processing(0, 5)) {
+                        fprintf(stderr, "Breaking out of animation loop.\n");
+                        goto out_drm;
+                    }
+                }
+            }
+        } while(loop);
+    }
+
+next:
     /* set background color and display picture */
     //modeset_draw_bgcolor (0xFF, 0xFF, 0xFF);
     modeset_draw_bgcolor (background_red, background_green, background_blue);
+    if (!animation && (strlen(filename) > 0))
+        pixman_image  = load_image(filename);
     if (pixman_image != NULL) {
         struct modeset_dev *iter;
         int img_width, img_height;
@@ -1016,14 +1127,16 @@ main (int argc, char **argv)
     } else
         splash_draw_image_center ();
 
-    splash_processing ();
+    if (wait)
+        splash_processing(0,0);
+    else
+        splash_processing(2,0);
 
+out_drm:
     /* cleanup everything */
     modeset_cleanup (drm_fd);
     close(pipe_fd);
-    if (strlen(filename) > 0) {
-        free(filename);
-    }
+
     ret = 0;
 
 out_close:

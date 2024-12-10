@@ -12,13 +12,9 @@ SRC_URI = " \
     file://105-3d-cube-picture-shader.yaml \
     file://110-3d-cube-video.yaml \
     file://111-3d-cube-video-shader.yaml \
-    file://115-3d_cube_camera.yaml \
-    file://116-3d_cube_camera_shader.yaml \
     file://120-3d-cube-pictures-shader.yaml \
     file://launch_cube_3D_1_picture_shader.sh \
     file://launch_cube_3D_3_pictures_shader.sh \
-    file://launch_cube_3D_camera.sh \
-    file://launch_cube_3D_camera_shader.sh \
     file://launch_cube_3D_color.sh \
     file://launch_cube_3D_color_shader.sh \
     file://launch_cube_3D_video.sh \
@@ -80,8 +76,6 @@ FILES:${PN}-extra = " \
     ${prefix}/local/demo/gtk-application/105-3d-cube-picture-shader.yaml \
     ${prefix}/local/demo/gtk-application/110-3d-cube-video.yaml \
     ${prefix}/local/demo/gtk-application/111-3d-cube-video-shader.yaml \
-    ${prefix}/local/demo/gtk-application/115-3d_cube_camera.yaml \
-    ${prefix}/local/demo/gtk-application/116-3d_cube_camera_shader.yaml \
     ${prefix}/local/demo/gtk-application/120-3d-cube-pictures-shader.yaml \
     "
 RDEPENDS:${PN}-extra = "${PN} weston-cube demo-launcher"

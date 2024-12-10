@@ -3,7 +3,7 @@ Application:
     Description: preview
     Icon: application/camera/pictures/ST1077_webcam_dark_blue.png
     Board:
-        List: stm32mp25
+        List: stm32mp2
     Type: script
     Script:
         Exist:

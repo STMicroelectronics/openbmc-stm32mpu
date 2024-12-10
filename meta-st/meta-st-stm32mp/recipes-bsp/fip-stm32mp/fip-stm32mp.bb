@@ -1,6 +1,8 @@
 SUMMARY = "FIP generation"
 LICENSE = "BSD-3-Clause"
 
+PACKAGE_ARCH = "${MACHINE_ARCH}"
+
 inherit sign-stm32mp
 inherit fip-utils-stm32mp
 
@@ -8,12 +10,12 @@ COMPATIBLE_MACHINE = "(stm32mpcommon)"
 
 DEPENDS += "tf-a-tools-native util-linux-native"
 DEPENDS += "virtual/trusted-firmware-a"
-DEPENDS += "virtual/optee-os"
+DEPENDS += "virtual-optee-os"
 DEPENDS += "virtual/bootloader"
 
 inherit deploy
 
-PV = "5.1"
+PV = "6.0"
 
 # Deploy the fip binary for current target
 do_deploy() {
@@ -24,7 +26,7 @@ do_deploy() {
         i=$(expr $i + 1)
         bl32_conf=$(echo ${FIP_BL32_CONF} | cut -d',' -f${i})
         dt_config=$(echo ${FIP_DEVICETREE} | cut -d',' -f${i})
-        uboot_conf=$(echo ${FIP_UBOOT_CONF} | cut -d',' -f${i})
+        search_conf=$(echo ${FIP_SEARCH_CONF} | cut -d',' -f${i})
         device_conf=$(echo ${FIP_DEVICE_CONF} | cut -d',' -f${i})
         for dt in ${dt_config}; do
             # Init soc suffix
@@ -115,7 +117,7 @@ do_deploy() {
             fi
             # Configure secondary config search
             SECOND_CONFSEARCH=""
-            [ -z "${uboot_conf}" ] || SECOND_CONFSEARCH="--search-secondary-config ${uboot_conf}"
+            [ -z "${search_conf}" ] || SECOND_CONFSEARCH="--search-secondary-config ${search_conf}"
             echo "****************************************"
             bbnote "[fip-utils-stm32mp] FIP command details:\
             \nFIP_DEPLOYDIR_ROOT=${RECIPE_SYSROOT} \

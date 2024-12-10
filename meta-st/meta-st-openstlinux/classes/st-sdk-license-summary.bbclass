@@ -544,4 +544,4 @@ def license_sdk_create_summary(d):
     html.endHtml()
     html.closefile()
 
-SDK_POSTPROCESS_COMMAND:append = "do_write_sdk_license_create_summary;"
+SDK_POSTPROCESS_COMMAND:append = " do_write_sdk_license_create_summary;"

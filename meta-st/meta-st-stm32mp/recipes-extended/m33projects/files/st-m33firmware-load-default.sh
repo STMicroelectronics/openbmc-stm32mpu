@@ -11,7 +11,7 @@ autodetect_board() {
     board=""
     for b in $LIST; do
         board_lower=$(echo $b | tr '[:upper:]' '[:lower:]')
-        comp_board=$(cat /proc/device-tree/compatible | sed "s|^st,|;|" | cut -d';' -f2 | tr '\n' ' ' | sed "s/ //g")
+        comp_board=$(tr -d '\0' < /proc/device-tree/compatible | sed "s|st,|,|g" | cut -d ',' -f2 | head -n 1 |tr '\n' ' ' | sed "s/ //g")
         if [  "$comp_board" =  "$board_lower" ];
         then
             echo "Board $board_lower is compatible"

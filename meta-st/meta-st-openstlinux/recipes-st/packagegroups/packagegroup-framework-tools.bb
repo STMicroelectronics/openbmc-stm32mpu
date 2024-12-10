@@ -104,7 +104,7 @@ SUMMARY:packagegroup-framework-tools-python3 = "Framework tools components for p
 RDEPENDS:packagegroup-framework-tools-python3 = "\
     python3-datetime    \
     python3-dateutil    \
-    python3-distutils   \
+    python3-distutils-extra \
     python3-email       \
     python3-fcntl       \
     python3-io          \
@@ -121,4 +121,5 @@ RDEPENDS:packagegroup-framework-tools-python3 = "\
     python3-pyyaml      \
     python3-pexpect     \
     python3-evdev       \
+    python3-compile     \
     "

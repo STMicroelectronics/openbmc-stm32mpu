@@ -11,7 +11,7 @@ EULA_FILE_ST ?= "${OPENSTLINUX_BASE}/files/licenses/ST-Proprietary"
 EULA_FILE_ST_MD5SUM ?= "7cb1e55a9556c7dd1a3cae09db9cc85f"
 
 image_copy_image_license() {
-    if [ -f ${EULA_FILE_ST} ]; then
+    if [ -e ${EULA_FILE_ST} ]; then
         cp ${EULA_FILE_ST} ${IMGDEPLOYDIR}/${IMAGE_NAME}.license
         cd ${IMGDEPLOYDIR}; ln -sf ${IMAGE_NAME}.license ${IMAGE_LINK_NAME}.license
     else

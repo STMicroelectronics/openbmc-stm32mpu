@@ -18,6 +18,7 @@ SRC_URI = " \
     file://wifi_start.sh \
     file://wifi_stop.sh \
     file://get_wlan_name.sh \
+    file://get_wlan_state.sh \
     file://get_ethernet_ip.sh \
     \
     file://netdata.desktop \

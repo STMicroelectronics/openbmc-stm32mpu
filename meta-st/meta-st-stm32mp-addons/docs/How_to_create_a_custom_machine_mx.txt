@@ -1,0 +1,2 @@
+Please read carefully this wiki page:
+https://wiki.st.com/stm32mpu/index.php/How_to_create_your_own_machine

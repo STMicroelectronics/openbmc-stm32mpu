@@ -3,6 +3,8 @@ LICENSE = "MIT"
 
 include recipes-st/images/st-image-partitions.inc
 
+IMAGE_NAME_SUFFIX = ".bootfs"
+
 # Set ROOTFS_MAXSIZE to expected ROOTFS_SIZE to use the whole disk partition and leave extra space to user
 IMAGE_ROOTFS_MAXSIZE     = "${IMAGE_ROOTFS_SIZE}"
 IMAGE_OVERHEAD_FACTOR    = "1"

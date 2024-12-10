@@ -40,20 +40,16 @@ README_HOW_TO.txt in ../external-dt.
 ---------------------------------------
 2. Initialize cross-compilation via SDK
 ---------------------------------------
-Source SDK environment:
-- For stm32mp1:
-    $ source <path to SDK>/environment-setup-cortexa7t2hf-neon-vfpv4-ostl-linux-gnueabi
-- For stm32mp2:
-    $ source <path to SDK>/environment-setup-cortexa35-ostl-linux
+* Source SDK environment:
+    $ source <path to SDK>/environment-setup
 
-To verify if your cross-compilation environment has been put in place correctly,
-run the following command:
-- For stm32mp1:
-    $ set | grep CROSS
-    CROSS_COMPILE=arm-ostl-linux-gnueabi-
-- For stm32mp2
-    $ set | grep CROSS
-    CROSS_COMPILE=aarch64-ostl-linux-
+* To verify that your cross-compilation environment is set-up correctly:
+    $ set | grep CROSS_COMPILE
+
+  If the variable CROSS_COMPILE has a value:
+   - arm-ostl-linux-gnueabi- for 32 bits architecture (for example STM32MP1)
+   - aarch64-ostl-linux- for 64 bits architecture (for example STM32MP2)
+  Then everything is set-up correctly
 
 Warning: the environment is valid only on the shell session where you have
 sourced the SDK environment.
@@ -68,7 +64,6 @@ In the kernel source directory (sources/*/##BP##-##PR##),
 you have one kernel source tarball, the patches and one Makefile:
    - ##LINUX_TARNAME##
    - 00*.patch
-   - Makefile.sdk
 
 If you would like to have a git management for the source code move to
 to section 4 [Management of kernel source code with GIT].
@@ -127,6 +122,11 @@ of current git and add it to kernel version number generated.
 To bypass this auto-generation of kernel version number:
     $ cd <directory to kernel source code>
     $ echo "" > .scmversion
+If you are using a different directory for building the kernel, you need to
+create also a scmversion file on it:
+    $ cd <directory on which you build the kernel>
+    $ echo "" > .scmversion
+
 This file avoid to have a kernel version with SHA1:
 - With scmversion file: 4.9.23
 - Without scmversion file: 4.9.23-g3e866b0
@@ -374,7 +374,7 @@ name:           led_class_flash
 vermagic:       5.4.31 SMP preempt mod_unload modversions ARMv7 p2v8
 
 ---------------------------
-8. Update Starter Package with kernel compilation outputs
+8. Generate new Starter Package with kernel compilation outputs
 ---------------------------
 
 If not already done, extract the artifacts from Starter Package tarball, for example:
@@ -392,7 +392,6 @@ Update Starter Package bootfs with new generated dtb and uImage or Image.gz
 * kernel modules
     Optionally, strip kernel modules (to reduce the size of each kernel modules)
     #> cd ${OUTPUT_BUILD_DIR}/install_artifact
-    #> rm lib/modules/*/source lib/modules/*/build
     #> find . -name "*.ko" | xargs $STRIP --strip-debug --remove-section=.comment --remove-section=.note --preserve-dates
 
     #> mkdir -p <your_starter_package_dir_path>/rootfs_mounted
