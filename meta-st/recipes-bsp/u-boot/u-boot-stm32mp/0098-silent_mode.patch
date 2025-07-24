@@ -1,0 +1,78 @@
+From 076ce1412e9a770e1ebff1beb14eb4d1e90b2ed9 Mon Sep 17 00:00:00 2001
+From: Christophe Priouzeau <christophe.priouzeau@foss.st.com>
+Date: Wed, 9 Apr 2025 09:27:38 +0200
+Subject: [PATCH] silent_mode
+
+---
+Upstream-Status: Inappropriate [specific to ST boards]
+
+ include/configs/stm32mp13_st_common.h | 1 +
+ include/configs/stm32mp15_st_common.h | 1 +
+ include/configs/stm32mp21_st_common.h | 1 +
+ include/configs/stm32mp23_st_common.h | 1 +
+ include/configs/stm32mp25_st_common.h | 1 +
+ 5 files changed, 5 insertions(+)
+
+diff --git a/include/configs/stm32mp13_st_common.h b/include/configs/stm32mp13_st_common.h
+index 813fec0bf7b..d080c0f828b 100644
+--- a/include/configs/stm32mp13_st_common.h
++++ b/include/configs/stm32mp13_st_common.h
+@@ -9,6 +9,7 @@
+ #define __CONFIG_STM32MP13_ST_COMMON_H__
+ 
+ #define STM32MP_BOARD_EXTRA_ENV \
++	"silent=1\0" \
+ 	"usb_pgood_delay=2000\0" \
+ 	"console=ttySTM0\0"
+ 
+diff --git a/include/configs/stm32mp15_st_common.h b/include/configs/stm32mp15_st_common.h
+index 271ac74a785..cc1015853d7 100644
+--- a/include/configs/stm32mp15_st_common.h
++++ b/include/configs/stm32mp15_st_common.h
+@@ -9,6 +9,7 @@
+ #define __CONFIG_STM32MP15_ST_COMMON_H__
+ 
+ #define STM32MP_BOARD_EXTRA_ENV \
++	"silent=1\0" \
+ 	"usb_pgood_delay=2000\0" \
+ 	"console=ttySTM0\0" \
+ 	"splashimage=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
+diff --git a/include/configs/stm32mp21_st_common.h b/include/configs/stm32mp21_st_common.h
+index f1af7b2254a..a4fb6a68189 100644
+--- a/include/configs/stm32mp21_st_common.h
++++ b/include/configs/stm32mp21_st_common.h
+@@ -9,6 +9,7 @@
+ #define __CONFIG_STM32MP21_ST_COMMON_H__
+ 
+ #define STM32MP_BOARD_EXTRA_ENV \
++	"silent=1\0" \
+ 	"usb_pgood_delay=2000\0" \
+ 	"console=ttySTM0\0"
+ 
+diff --git a/include/configs/stm32mp23_st_common.h b/include/configs/stm32mp23_st_common.h
+index 91469b45871..3d4e168cee9 100644
+--- a/include/configs/stm32mp23_st_common.h
++++ b/include/configs/stm32mp23_st_common.h
+@@ -9,6 +9,7 @@
+ #define __CONFIG_STM32MP23_ST_COMMON_H__
+ 
+ #define STM32MP_BOARD_EXTRA_ENV \
++	"silent=1\0" \
+ 	"usb_pgood_delay=2000\0" \
+ 	"console=ttySTM0\0"
+ 
+diff --git a/include/configs/stm32mp25_st_common.h b/include/configs/stm32mp25_st_common.h
+index ab5a4a91644..1058b4befcf 100644
+--- a/include/configs/stm32mp25_st_common.h
++++ b/include/configs/stm32mp25_st_common.h
+@@ -9,6 +9,7 @@
+ #define __CONFIG_STM32MP25_ST_COMMON_H__
+ 
+ #define STM32MP_BOARD_EXTRA_ENV \
++	"silent=1\0" \
+ 	"usb_pgood_delay=2000\0" \
+ 	"console=ttySTM0\0"
+ 
+-- 
+2.43.0
+

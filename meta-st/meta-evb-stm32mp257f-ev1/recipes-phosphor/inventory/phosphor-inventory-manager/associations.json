@@ -1,0 +1,22 @@
+[
+    {
+        "path": "system/chassis",
+        "endpoints":
+        [
+            {
+                "types":
+                {
+                    "rType": "chassis",
+                    "fType": "all_sensors"
+                },
+                "paths":
+                [
+                    "/xyz/openbmc_project/sensors/voltage/cpu_vin1",
+                    "/xyz/openbmc_project/sensors/voltage/cpu_vin2",
+                    "/xyz/openbmc_project/sensors/temperature/inlet_cpu",
+                    "/xyz/openbmc_project/sensors/temperature/outlet_cpu"
+                ]
+            }
+        ]
+    }
+]

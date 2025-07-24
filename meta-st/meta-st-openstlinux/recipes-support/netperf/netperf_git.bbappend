@@ -1,2 +1,0 @@
-SYSTEMD_AUTO_ENABLE = "disable"
-INITSCRIPT_PARAMS = "disable"

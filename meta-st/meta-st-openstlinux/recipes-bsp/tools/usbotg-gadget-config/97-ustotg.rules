@@ -1,3 +1,0 @@
-ACTION=="add", SUBSYSTEM=="udc", RUN+="/sbin/stm32_usbotg_eth_config.sh start"
-ACTION=="remove", SUBSYSTEM=="udc", RUN+="/sbin/stm32_usbotg_eth_config.sh stop"
-
