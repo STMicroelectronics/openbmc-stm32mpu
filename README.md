@@ -1,6 +1,6 @@
 # openbmc-stm32mpu
 
-This repository aims to bring STM32MPU support into [OpenBMC project](https://github.com/openbmc/openbmc).
+This repository aims to bring STM32MP2 support into [OpenBMC project](https://github.com/openbmc/openbmc).
 
 The *meta-st* is based on [*OpenSTLinux* distribution](https://wiki.st.com/stm32mpu/wiki/OpenSTLinux_distribution).
 
@@ -8,9 +8,9 @@ The *meta-st* is based on [*OpenSTLinux* distribution](https://wiki.st.com/stm32
 
 |                   | Version                                                       |
 | --------          | -------                                                       |
-| **Yocto**         | Scarthgap                                                     |
-| **OpenSTLinux**   | 6.0.0                                                         |
-| **OpenBMC**       | 2.17.0-dev (SHA1 : *634e797b0331cad240ff7c1a360864f333753612*)    |
+| **Yocto**         | Walnascar                                                     |
+| **OpenSTLinux**   | 6.1.0                                                         |
+| **OpenBMC**       | 2.18.0 (SHA1 : *05f7a3f2eddb94263a03c5e601452f0d4ec5c87b*)    |
 
 ## How to set up openBMC for STM32MPU ?
 
@@ -22,7 +22,7 @@ We need to point on the SHA1 mentioned in the table above.
 ```sh
 git clone https://github.com/openbmc/openbmc.git
 cd openbmc
-git checkout 634e797b0331cad240ff7c1a360864f333753612
+git checkout 05f7a3f2eddb94263a03c5e601452f0d4ec5c87b
 ```
 
 You can check all the supported platforms by doing the following command :
@@ -43,36 +43,40 @@ We will call :
 ```sh
 mkdir <folder_st>
 cd <folder_st>
-git clone https://github.com/STMicroelectronics/openbmc-stm32mpu.git -b yocto_scarthgap 
+git clone https://github.com/STMicroelectronics/openbmc-stm32mpu.git -b yocto_walnascar
 cp -r ./openbmc-stm32mpu/meta-st <folder_openbmc>/openbmc
 ```
-
 In your **openbmc** repo, you should now see the *meta-st* layer next to all other vendor Yocto layers.
+
+To be as close as possible from the OpenBMC code/distribution spirit, we now deliver the STM32MP25 eval board machine into the existing dedicated folder (***meta-evb***), as well as some patches needed in ***meta-phosphor***.
+
+You so have to apply the **2** patches present in this repo.
+
+```sh
+cd <folder_openbmc>/openbmc
+git apply <folder_st>/openbmc-stm32mpu/0002-Update-meta-evb-to-support-STM32MP257F-EV-board.patch
+git apply <folder_st>/openbmc-stm32mpu/0003-Update-meta-phosphor-for-ST-need.patch
+```
 
 Now if you do 
 ```sh
 . setup
 ```
-You should see ST Yocto MACHINES (.e.g *stm32mp1*, *stm32mp2*, *stm32mp25-eval* ...)
+You should see the STM32MP257F-EV1 machine (***evb-stm32mp257f-ev1***)
 
 ### Source and build openbmc distribution
 
-Depending on the ST image you want to build, you have to use the setup script to source correctly your environment. The parameter you give to *setup* script is one of the MACHINE output by the previous command.
+To sources your Yocto build environment, you can now do:
 
 ```sh
-. setup <ST_MACHINE>
-```
-Example : 
-
-```sh
-. setup stm32mp2
+. setup evb-stm32mp257f-ev1
 ```
 You are now ready to build :
 ```sh
 bitbake obmc-phosphor-image
 ```
 
-This Yocto compilation can takes a lot of time, take a break !
+This Yocto compilation can take a lot of time, take a break !
 When compilation is finished, your final openBMC distribution image is now generated.
 
 ### Deploy your final image
@@ -81,7 +85,7 @@ To ensure the compatibility with STMicroelectronics tools as CubeProgramer, *met
 You can go in the correponding build folders to get all the files generated :
 
 ```sh
-cd tmp/deploy/images/<machine>/
+cd tmp/deploy/images/evb-stm32mp257f-ev1/
 ```
 
 The way to flash your image is so definitly the same as explained in ***OpenSTLinux documentation***. Please refer to the ***Populate the target and boot the image*** article corresponding to your platform : https://wiki.st.com/stm32mpu/wiki/Getting_started
@@ -90,17 +94,29 @@ Example for STM32MP257F-EV board : [here](https://wiki.st.com/stm32mpu/wiki/Gett
 
 Once the image is flashed, you can boot your board with *openBMC distribution software* running on it.
 
-***Warning : by default, openBMC distribution creates and activate a watchdog that aims to check the alive connection between the Host and the BMC chip. If you do not have an host chip kicking this watchdog for now, your board will restart each time. To avoid this, you can disable the watchdog or just rename it with the following command :***
+## Login
 
-```sh
-mv /lib/systemd/system.conf.d/40-hardware-watchdog.conf /lib/systemd/system.conf.d/40-hardware-watchdog.conf.backup
-```
+The OpenBMC distribution is configured with default credentials used to login on both console and OpenBMC webUI.
+
+* login: **root**
+* password: **0penBmc**
+
+*Take care, password begins by a zero.*
+
+## WebUI
+
+The STM32MP257F-EV1 machine is configured with a minimal example of sensors and LED settings. This can be observed through the WebUI interface proposed by OpenBMC.
+Check the Ethernet address of your board through "***ip a***" command, then connect to webUI through the following link on a machine in the same network.
+
+* link: ***https://<ip_board>***
+
+Credentials are the same than the ones described above.
 
 ## Disclaimer
 
 The Yocto layer distributed here guarantees only minimal support for STM32MPU platforms within the OpenBMC project. Configuration and interconnection with the host chip and chassis must be done entirely by the user. For further information, please refer to the official OpenBMC project documentation.
 
-## Versioning 
+## Versioning
 
 For each release, you can identify the version by the different information below :
 * **Branch** : the name of the Yocto version used.
