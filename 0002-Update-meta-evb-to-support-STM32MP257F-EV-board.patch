@@ -1,0 +1,226 @@
+From 00facea4fe45632edae8e9007028efe190114ad6 Mon Sep 17 00:00:00 2001
+From: Erwan SZYMANSKI <erwan.szymanski@st.com>
+Date: Thu, 24 Jul 2025 09:41:03 +0200
+Subject: [PATCH 2/3] Update meta-evb to support STM32MP257F-EV board
+
+Change-Id: I088007ad816a1c039e1b7eeb339f2ec07ce88698
+---
+ meta-evb/meta-evb-st/conf/layer.conf          |   7 ++
+ .../meta-evb-stm32mp257f-ev1/conf/layer.conf  |  12 ++
+ .../conf/machine/evb-stm32mp257f-ev1.conf     | 107 ++++++++++++++++++
+ .../templates/default/bblayers.conf.sample    |  21 ++++
+ .../conf/templates/default/conf-notes.txt     |   2 +
+ .../conf/templates/default/local.conf.sample  |  17 +++
+ 6 files changed, 166 insertions(+)
+ create mode 100644 meta-evb/meta-evb-st/conf/layer.conf
+ create mode 100644 meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/layer.conf
+ create mode 100644 meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/machine/evb-stm32mp257f-ev1.conf
+ create mode 100644 meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/templates/default/bblayers.conf.sample
+ create mode 100644 meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/templates/default/conf-notes.txt
+ create mode 100644 meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/templates/default/local.conf.sample
+
+diff --git a/meta-evb/meta-evb-st/conf/layer.conf b/meta-evb/meta-evb-st/conf/layer.conf
+new file mode 100644
+index 0000000000..3af136aa3f
+--- /dev/null
++++ b/meta-evb/meta-evb-st/conf/layer.conf
+@@ -0,0 +1,7 @@
++# We have a conf and classes directory, add to BBPATH
++BBPATH .= ":${LAYERDIR}"
++
++BBFILE_COLLECTIONS += "evb-st"
++BBFILE_PATTERN_evb-st = ""
++BBFILE_PATTERN_IGNORE_EMPTY_evb-st =  "1"
++LAYERSERIES_COMPAT_evb-st = "scarthgap styhead walnascar"
+diff --git a/meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/layer.conf b/meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/layer.conf
+new file mode 100644
+index 0000000000..26786e2dff
+--- /dev/null
++++ b/meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/layer.conf
+@@ -0,0 +1,12 @@
++# We have a conf and classes directory, add to BBPATH
++BBPATH .= ":${LAYERDIR}"
++
++# We have recipes-* directories, add to BBFILES
++BBFILES += "${LAYERDIR}/recipes-*/*/*.bb \
++            ${LAYERDIR}/recipes-*/*/*.bbappend"
++
++BBFILE_COLLECTIONS += "evb-stm32mp257f-ev1"
++BBFILE_PATTERN_evb-stm32mp257f-ev1 = "^${LAYERDIR}/"
++
++LAYERSERIES_COMPAT_evb-stm32mp257f-ev1 = "scarthgap styhead walnascar"
++BBFILE_PATTERN_IGNORE_EMPTY_evb-stm32mp257f-ev1 = "1"
+diff --git a/meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/machine/evb-stm32mp257f-ev1.conf b/meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/machine/evb-stm32mp257f-ev1.conf
+new file mode 100644
+index 0000000000..2207344aff
+--- /dev/null
++++ b/meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/machine/evb-stm32mp257f-ev1.conf
+@@ -0,0 +1,107 @@
++#@TYPE: Machine
++#@NAME: stm32mp25-eval
++#@DESCRIPTION: Configuration for all STM32MP25 eval boards (EV)
++#@NEEDED_BSPLAYERS: layers/meta-openembedded/meta-oe layers/meta-openembedded/meta-python
++
++# Define specific familly common machine name
++MACHINEOVERRIDES =. "stm32mp2common:stm32mp25common:"
++
++include conf/machine/include/st-machine-common-stm32mp.inc
++include conf/machine/include/st-machine-providers-stm32mp.inc
++
++# =========================================================================
++# Chip architecture
++# =========================================================================
++DEFAULTTUNE = "cortexa35"
++include conf/machine/include/arm/armv8a/tune-cortexa35.inc
++
++# =========================================================================
++# boot scheme
++# =========================================================================
++BOOTSCHEME_LABELS = "optee"
++
++# =========================================================================
++# boot device
++# =========================================================================
++# Define the boot device supported
++BOOTDEVICE_LABELS += "emmc"
++BOOTDEVICE_LABELS += "nor-sdcard"
++BOOTDEVICE_LABELS += "sdcard"
++
++# =========================================================================
++# Machine settings
++# =========================================================================
++# activate external dt
++EXTERNAL_DT_ENABLED = "1"
++
++# Define list of devicetree per supported storage
++STM32MP_DT_FILES_EMMC   += "stm32mp257f-ev1"
++STM32MP_DT_FILES_SDCARD += "stm32mp257f-ev1"
++STM32MP_DT_FILES_NOR    += "stm32mp257f-ev1"
++
++EXTERNAL_DEVICETREE_SDCARD = "stm32mp257f-ev1-ca35tdcid-ostl"
++EXTERNAL_DEVICETREE_SDCARD =+ "stm32mp257f-ev1-ca35tdcid-ostl-m33-examples"
++
++EXTERNAL_DEVICETREE_EMMC = "stm32mp257f-ev1-ca35tdcid-ostl"
++EXTERNAL_DEVICETREE_EMMC =+ "stm32mp257f-ev1-ca35tdcid-ostl-m33-examples"
++
++# =========================================================================
++# Machine features
++# =========================================================================
++
++# M33
++MACHINE_FEATURES += "m33copro"
++
++# PCIe
++PCI_LIST += "linux-firmware-rtl8168"
++
++# ==========================================================================
++# M33 Boards
++# ==========================================================================
++# Lists of boards/devicetree on which the m33 service MUST be started
++M33_BOARDS_START_AT_STARTUP = "stm32mp257f-ev1"
++M33_BOARDS_START_AT_STARTUP =+ "${@bb.utils.contains('EXTERNAL_DT_ENABLED', '1', 'stm32mp257f-ev1-ca35tdcid-ostl', '', d)}"
++
++# =========================================================================
++# OPTEE
++# =========================================================================
++# For sdk generation, declare the default board configuration to use.
++ST_OPTEE_EXPORT_TA_REF_BOARD:stm32mp2common = "stm32mp257f-ev1.dts"
++
++# =========================================================================
++# WIC for sdcard raw image
++# =========================================================================
++WIC_CREATE_EXTRA_ARGS = "--no-fstab-update"
++WKS_FILE_DEPENDS ?= " \
++    virtual/bootloader \
++    virtual/trusted-firmware-a \
++    virtual-optee-os \
++    ${@bb.utils.contains('ST_BOOTFS','1','st-image-bootfs', '', d)} \
++    ${@bb.utils.contains('ST_VENDORFS','1','st-image-vendorfs', '', d)} \
++    ${@bb.utils.contains('ST_USERFS','1','st-image-userfs', '', d)} \
++"
++OPTEE_WIC_FILE = "${@bb.utils.contains('ST_VENDORFS','1','sdcard-stm32mp257f-ev1-optee-vendorfs-2GB.wks.in','sdcard-stm32mp257f-ev1-optee-2GB.wks.in',d)}"
++
++# for generated a WIC file, please uncomment the 2 following lines or add them to local.conf
++#WKS_IMAGE_FSTYPES += "wic wic.bz2 wic.bmap"
++#WKS_FILE += "${OPTEE_WIC_FILE}"
++
++require conf/machine/include/obmc-bsp-common.inc
++
++PREFERRED_PROVIDER_virtual/obmc-chassis-mgmt = "packagegroup-obmc-st-apps"
++PREFERRED_PROVIDER_virtual/obmc-fan-mgmt = "packagegroup-obmc-st-apps"
++PREFERRED_PROVIDER_virtual/obmc-flash-mgmt = "packagegroup-obmc-st-apps"
++PREFERRED_PROVIDER_virtual/obmc-system-mgmt = "packagegroup-obmc-st-apps"
++PREFERRED_PROVIDER_virtual/obmc-inventory-data ?= "${VIRTUAL-RUNTIME_skeleton_workbook}"
++PREFERRED_PROVIDER_virtual/obmc-host-ipmi-hw ?= "phosphor-ipmi-kcs"
++PREFERRED_PROVIDER_virtual/phosphor-led-manager-config-native = "stm32mp257f-ev1-led-manager-config-native"
++
++OBMC_MACHINE_FEATURES += "\
++        obmc-bmc-state-mgmt \
++        obmc-host-ipmi \
++        obmc-host-state-mgmt \
++        "
++
++IMAGE_FSTYPES:remove =  " mtd-static mtd-static-tar mtd-static-alltar "
++KERNEL_CLASSES:remove = " kernel-fitimage "
++KERNEL_IMAGETYPES:remove =  "fitImage vmlinux "
+diff --git a/meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/templates/default/bblayers.conf.sample b/meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/templates/default/bblayers.conf.sample
+new file mode 100644
+index 0000000000..249b15c075
+--- /dev/null
++++ b/meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/templates/default/bblayers.conf.sample
+@@ -0,0 +1,21 @@
++# LAYER_CONF_VERSION is increased each time build/conf/bblayers.conf
++# changes incompatibly
++LCONF_VERSION = "8"
++
++BBPATH = "${TOPDIR}"
++BBFILES ?= ""
++
++BBLAYERS ?= " \
++  ##OEROOT##/meta \
++  ##OEROOT##/meta-openembedded/meta-oe \
++  ##OEROOT##/meta-openembedded/meta-networking \
++  ##OEROOT##/meta-openembedded/meta-perl \
++  ##OEROOT##/meta-openembedded/meta-python \
++  ##OEROOT##/meta-openembedded/meta-filesystems \
++  ##OEROOT##/meta-security \
++  ##OEROOT##/meta-phosphor \
++  ##OEROOT##/meta-st \
++  ##OEROOT##/meta-st/meta-evb-stm32mp257f-ev1 \
++  ##OEROOT##/meta-evb/meta-evb-st \
++  ##OEROOT##/meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1 \
++  "
+diff --git a/meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/templates/default/conf-notes.txt b/meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/templates/default/conf-notes.txt
+new file mode 100644
+index 0000000000..9b3c01a556
+--- /dev/null
++++ b/meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/templates/default/conf-notes.txt
+@@ -0,0 +1,2 @@
++Common targets are:
++     obmc-phosphor-image
+diff --git a/meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/templates/default/local.conf.sample b/meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/templates/default/local.conf.sample
+new file mode 100644
+index 0000000000..9fb2cf9b92
+--- /dev/null
++++ b/meta-evb/meta-evb-st/meta-evb-stm32mp257f-ev1/conf/templates/default/local.conf.sample
+@@ -0,0 +1,17 @@
++MACHINE ??= "stm32mp25-eval"
++DISTRO ?= "openbmc-phosphor"
++PACKAGE_CLASSES ?= "package_ipk"
++SANITY_TESTED_DISTROS:append ?= " *"
++EXTRA_IMAGE_FEATURES ?= "allow-root-login"
++USER_CLASSES ?= "buildstats"
++PATCHRESOLVE = "noop"
++BB_DISKMON_DIRS = "\
++    STOPTASKS,${TMPDIR},1G,100K \
++    STOPTASKS,${DL_DIR},1G,100K \
++    STOPTASKS,${SSTATE_DIR},1G,100K \
++    STOPTASKS,/tmp,100M,100K \
++    HALT,${TMPDIR},100M,1K \
++    HALT,${DL_DIR},100M,1K \
++    HALT,${SSTATE_DIR},100M,1K \
++    HALT,/tmp,10M,1K"
++CONF_VERSION = "2"
+-- 
+2.34.1
+

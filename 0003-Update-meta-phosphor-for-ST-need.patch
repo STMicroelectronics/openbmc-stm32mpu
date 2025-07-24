@@ -1,0 +1,36 @@
+From 1fe58c896a9b3c9d36cf1570d3e0ae4e873445ee Mon Sep 17 00:00:00 2001
+From: Erwan SZYMANSKI <erwan.szymanski@st.com>
+Date: Thu, 24 Jul 2025 09:41:37 +0200
+Subject: [PATCH 3/3] Update meta-phosphor for ST need
+
+Change-Id: Id6e194e2da3b3d83afac115e1cbc1814826ecc98
+---
+ meta-phosphor/classes/image_types_phosphor_st.bbclass | 3 +++
+ meta-phosphor/conf/distro/include/phosphor-base.inc   | 1 +
+ 2 files changed, 4 insertions(+)
+ create mode 100644 meta-phosphor/classes/image_types_phosphor_st.bbclass
+
+diff --git a/meta-phosphor/classes/image_types_phosphor_st.bbclass b/meta-phosphor/classes/image_types_phosphor_st.bbclass
+new file mode 100644
+index 0000000000..b57ab78f4f
+--- /dev/null
++++ b/meta-phosphor/classes/image_types_phosphor_st.bbclass
+@@ -0,0 +1,3 @@
++# For ST Image creation and Flashlayout, need to stay with default IMAGE_NAME_SUFFIX
++
++IMAGE_NAME_SUFFIX=".rootfs"
+diff --git a/meta-phosphor/conf/distro/include/phosphor-base.inc b/meta-phosphor/conf/distro/include/phosphor-base.inc
+index c997a827b0..7cb8e8478b 100644
+--- a/meta-phosphor/conf/distro/include/phosphor-base.inc
++++ b/meta-phosphor/conf/distro/include/phosphor-base.inc
+@@ -122,6 +122,7 @@ include conf/distro/include/openbmc-phosphor/${MACHINE}.inc
+ IMAGE_CLASSES:append = " image_types_phosphor phosphor-rootfs-postcommands"
+ IMAGE_CLASSES:append:npcm7xx = " image_types_phosphor_nuvoton"
+ IMAGE_CLASSES:append:npcm8xx = " image_types_phosphor_nuvoton_npcm8xx"
++IMAGE_CLASSES:append:stm32mpcommon = " image_types_phosphor_st"
+ 
+ IMAGE_INSTALL:append = " dbus-broker libnss-systemd"
+ 
+-- 
+2.34.1
+
